@@ -699,6 +699,7 @@
                 // Persist fileId locally without triggering a recursive sync loop
                 localStorage.setItem('wealthTrackerData', JSON.stringify(state));
             } else {
+                // Upload content using the media upload endpoint for existing file
                 await gapi.client.request({
                     path: '/upload/drive/v3/files/' + state.config.gdrive.fileId,
                     method: 'PATCH',
