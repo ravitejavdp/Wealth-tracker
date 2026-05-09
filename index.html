@@ -19,17 +19,47 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .active-tab { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        
+        /* Lock Screen Overlay */
+        #lockScreen {
+            position: fixed;
+            inset: 0;
+            background: #f3f4f6;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+        .blur-content { filter: blur(20px); pointer-events: none; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
-<div class="max-w-6xl mx-auto p-4 md:p-8">
+<!-- Lock Screen -->
+<div id="lockScreen" class="hidden">
+    <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center max-w-xs w-full">
+        <div class="bg-blue-100 p-3 rounded-full mb-4">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </div>
+        <h2 class="text-xl font-bold mb-6">Enter PIN to Unlock</h2>
+        <input type="password" id="pinEntry" class="border-2 border-gray-200 p-3 rounded-xl w-full text-center text-2xl tracking-[1em] focus:border-blue-500 outline-none mb-4" maxlength="4" autofocus>
+        <p id="lockError" class="text-red-500 text-xs font-bold hidden">Incorrect PIN. Try again.</p>
+    </div>
+</div>
+
+<div id="mainContainer" class="max-w-6xl mx-auto p-4 md:p-8">
     <header class="mb-8 flex justify-between items-center">
         <h1 class="text-3xl font-bold text-gray-800">WealthTracker</h1>
-        <div class="space-x-2">
-            <button onclick="exportData()" class="bg-green-600 text-white px-4 py-2 rounded text-sm">Download data.json</button>
+        <div class="space-x-2 flex items-center">
+            <button id="linkFileBtn" onclick="linkLocalFile()" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs md:text-sm" title="Link to wealth_data.json on your computer">Link Local File</button>
+            <button id="reloadFileBtn" onclick="readFileContent()" class="bg-gray-500 text-white px-2 py-2 rounded text-xs hidden" title="Reload from File">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+            <button onclick="exportData()" class="bg-green-600 text-white px-3 py-2 rounded text-xs md:text-sm">Download</button>
             <input type="file" id="importFile" class="hidden" onchange="importData(event)">
-            <button onclick="document.getElementById('importFile').click()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Load data.json</button>
+            <button onclick="document.getElementById('importFile').click()" class="bg-blue-600 text-white px-3 py-2 rounded text-xs md:text-sm">Load</button>
         </div>
     </header>
 
@@ -42,7 +72,7 @@
         <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 font-medium text-gray-500">Settings</button>
     </nav>
 
-    <!-- Entries Tab -->
+    <!-- Inventory Tab -->
     <div id="entries" class="tab-content active">
         <div id="assetListView">
             <div class="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -242,6 +272,25 @@
                         <h3 id="grandTotalAssetsINR" class="text-2xl font-black">₹0</h3>
                         <p id="grandTotalAssetsUSD" class="text-xs font-bold text-gray-400 mt-1"></p>
                     </div>
+                    <div class="bg-indigo-600 p-6 rounded-xl shadow text-white">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-1">Consolidated Net Worth</p>
+                        <h3 id="globalNetWorthINR" class="text-2xl font-black">₹0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Allocation Insights -->
+            <div class="mt-12">
+                <h3 class="text-lg font-bold mb-3 text-gray-700">Portfolio Allocation</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border flex flex-col items-center">
+                        <p class="text-[10px] font-black uppercase text-gray-400 mb-4 text-center">Geography (India vs USA)</p>
+                        <div class="w-full max-w-[250px]"><canvas id="geoChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border flex flex-col items-center">
+                        <p class="text-[10px] font-black uppercase text-gray-400 mb-4 text-center">Category Split</p>
+                        <div class="w-full max-w-[250px]"><canvas id="catChart"></canvas></div>
+                    </div>
                 </div>
             </div>
 
@@ -332,6 +381,17 @@
             <button onclick="saveSettings()" class="block mt-4 bg-gray-800 text-white px-4 py-2 rounded">Update Exchange Rate</button>
 
             <hr class="my-8">
+            <h2 class="text-xl font-semibold mb-4 text-indigo-600">Privacy & Security</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 uppercase mb-1">Set 4-Digit PIN</label>
+                    <input type="password" id="newPin" placeholder="Enter 4 digits" class="border p-2 rounded w-full text-sm" maxlength="4">
+                    <p class="text-[10px] text-gray-400 mt-1 italic">Leave blank and save to disable the lock.</p>
+                </div>
+            </div>
+            <button onclick="updateSecurity()" class="block mt-4 bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold">Update Security</button>
+
+            <hr class="my-8">
             <h2 class="text-xl font-semibold mb-4 text-blue-600">Google Drive Sync</h2>
             <div id="gdrive-setup" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -344,7 +404,7 @@
                         <input type="text" id="gdriveClientId" placeholder="Enter Client ID" class="border p-2 rounded w-full text-sm">
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 flex-wrap">
                     <button id="connectDriveBtn" onclick="handleAuthClick()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">
                         Connect Google Drive
                     </button>
@@ -361,7 +421,7 @@
                         Push to Drive
                     </button>
                     <div id="driveStatus" class="flex items-center gap-2 hidden">
-                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Drive Connected</span>
                     </div>
                     <div id="syncIndicator" class="flex items-center gap-2 hidden">
@@ -387,7 +447,14 @@
     let state = {
         config: { 
             exchangeRate: 83.0,
-            gdrive: { apiKey: '', clientId: '', fileId: null }
+            gdrive: { 
+                apiKey: '', 
+                clientId: '', 
+                fileId: null,
+                token: null,
+                tokenExpiry: null 
+            },
+            security: { pin: null }
         },
         assets: [],
         selectedAssetId: null
@@ -398,6 +465,7 @@
     let gapiInited = false;
     let gisInited = false;
     let accessToken = null;
+    let fileHandle = null;
 
     // Navigation - Moved to top to ensure availability for inline onclick handlers
     function showTab(tabId) {
@@ -423,7 +491,6 @@
         const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         document.getElementById('entryDate').value = today;
         
-        // Set projection target to 5 years from now by default
         const projDate = new Date();
         projDate.setFullYear(projDate.getFullYear() + 5);
         document.getElementById('projTargetDate').value = `${projDate.getFullYear()}-${String(projDate.getMonth() + 1).padStart(2, '0')}`;
@@ -433,19 +500,21 @@
         const savedData = localStorage.getItem('wealthTrackerData');
         if (savedData) {
             const loadedData = JSON.parse(savedData);
-            // Ensure we merge loaded data with the default state structure
             state = {
                 ...state,
                 ...loadedData,
                 assets: loadedData.assets || [] 
             };
-            // Ensure every asset has an entries array
             state.assets.forEach(a => { if(!a.entries) a.entries = []; });
             document.getElementById('exchangeRate').value = state.config.exchangeRate;
             if (state.config.gdrive) {
                 document.getElementById('gdriveApiKey').value = state.config.gdrive.apiKey || '';
                 document.getElementById('gdriveClientId').value = state.config.gdrive.clientId || '';
+                if (state.config.gdrive.token && state.config.gdrive.tokenExpiry > Date.now()) {
+                    accessToken = state.config.gdrive.token;
+                }
             }
+            checkLock();
             renderAssets();
         }
         setDefaultDate();
@@ -455,9 +524,8 @@
 
     function saveToLocalStorage() {
         localStorage.setItem('wealthTrackerData', JSON.stringify(state));
-        if (accessToken) {
-            syncToDrive();
-        }
+        if (accessToken) syncToDrive();
+        if (fileHandle) saveToFile();
     }
 
     // Settings
@@ -470,11 +538,51 @@
         alert("Settings updated!");
     }
 
-    // --- Google Drive API Integration ---
+    function updateSecurity() {
+        const pin = document.getElementById('newPin').value;
+        if (pin && pin.length !== 4) {
+            alert("PIN must be exactly 4 digits.");
+            return;
+        }
+        state.config.security = { pin: pin || null };
+        saveToLocalStorage();
+        alert(pin ? "PIN Lock enabled." : "PIN Lock disabled.");
+    }
 
+    // Security Logic
+    function checkLock() {
+        const lockScreen = document.getElementById('lockScreen');
+        const mainContainer = document.getElementById('mainContainer');
+        const pin = state.config.security?.pin;
+
+        if (pin) {
+            lockScreen.classList.remove('hidden');
+            mainContainer.classList.add('blur-content');
+            document.getElementById('pinEntry').focus();
+            
+            document.getElementById('pinEntry').addEventListener('input', (e) => {
+                if (e.target.value === pin) {
+                    unlockApp();
+                } else if (e.target.value.length === 4) {
+                    document.getElementById('lockError').classList.remove('hidden');
+                    e.target.value = '';
+                }
+            });
+        }
+    }
+
+    function unlockApp() {
+        document.getElementById('lockScreen').classList.add('hidden');
+        document.getElementById('mainContainer').classList.remove('blur-content');
+        document.getElementById('lockError').classList.add('hidden');
+        document.getElementById('pinEntry').value = '';
+    }
+
+    // Google Drive API Integration
     function gapiLoaded() {
         gapi.load('client', async () => {
             gapiInited = true;
+            if (state.config.gdrive.fileId) initializeDriveFile();
         });
     }
 
@@ -485,16 +593,11 @@
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: clientId,
             scope: 'https://www.googleapis.com/auth/drive.file',
+            prompt: '', 
             callback: (resp) => {
                 if (resp.error !== undefined) throw (resp);
                 accessToken = resp.access_token;
-                
-                // Immediately authorize the gapi client so background syncs work right away
-                if (gapiInited) gapi.client.setToken({ access_token: accessToken });
-
-                // Persist token for refresh handling
                 state.config.gdrive.token = accessToken;
-                // resp.expires_in is in seconds; convert to absolute timestamp
                 state.config.gdrive.tokenExpiry = Date.now() + (resp.expires_in * 1000);
                 localStorage.setItem('wealthTrackerData', JSON.stringify(state));
 
@@ -516,7 +619,6 @@
         });
         gisInited = true;
 
-        // Restore UI visibility if file was previously linked
         if (state.config.gdrive.fileId) {
             updateDriveUI(accessToken !== null);
         }
@@ -559,7 +661,6 @@
             state.config.gdrive.token = null;
             state.config.gdrive.tokenExpiry = null;
             accessToken = null;
-            // Direct localStorage save to prevent triggering a recursive sync creation
             localStorage.setItem('wealthTrackerData', JSON.stringify(state));
             location.reload();
         }
@@ -577,38 +678,35 @@
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
 
-            // If we restored a token from localStorage, tell GAPI to use it
-            if (accessToken) gapi.client.setToken({ access_token: accessToken });
+            if (accessToken) {
+                gapi.client.setToken({ access_token: accessToken });
+                updateDriveUI(true);
+                document.getElementById('connectDriveBtn').innerText = 'Connected';
+            }
 
-            // Search for existing file
             const response = await gapi.client.drive.files.list({
                 q: "name = 'wealth_data.json' and trashed = false",
                 fields: 'files(id, name)',
             });
-            if (accessToken) document.getElementById('connectDriveBtn').innerText = 'Connected';
 
             const files = response.result.files;
             if (files && files.length > 0) {
                 state.config.gdrive.fileId = files[0].id;
-                console.log("File found on Drive:", state.config.gdrive.fileId);
-                await pullFromDrive(true); // Initial pull with confirmation
+                await pullFromDrive(true); 
             } else {
-                console.warn("No file found with name 'wealth_data.json' that this app has permission to see. Use 'Force Upload' to link your data.");
                 state.config.gdrive.fileId = null;
                 document.getElementById('connectDriveBtn').innerText = 'Connected (No File)';
             }
         } catch (err) {
-            console.error("Error initializing Drive file:", err);
-            alert("Failed to fetch data from Drive. Check console for details.");
+            console.error("Drive Init Error:", err);
         }
     }
 
     async function pullFromDrive(withConfirm = false) {
         if (!state.config.gdrive.fileId) {
-            alert("Please connect to Google Drive first.");
+            alert("Connect to Drive first.");
             return;
         }
-
         if (!accessToken) {
             window._pullAfterAuth = true;
             handleAuthClick();
@@ -620,101 +718,70 @@
                 fileId: state.config.gdrive.fileId,
                 alt: 'media',
             });
-            
             const remoteData = typeof fileContent.result === 'string' ? JSON.parse(fileContent.result) : fileContent.result;
-
             if (remoteData) {
-                if (!withConfirm || confirm("Found data on Google Drive. Overwrite local data with Drive data?")) {
-                    // Deep update state
+                if (!withConfirm || confirm("Overwrite local data with Drive data?")) {
                     state.assets = remoteData.assets || [];
-                    if (remoteData.config) {
-                        state.config.exchangeRate = remoteData.config.exchangeRate || state.config.exchangeRate;
-                    }
-                    
-                    // Persist locally without triggering the syncToDrive loop
+                    if (remoteData.config) state.config.exchangeRate = remoteData.config.exchangeRate || state.config.exchangeRate;
                     localStorage.setItem('wealthTrackerData', JSON.stringify(state));
                     renderAssets();
                     if (state.selectedAssetId) renderAssetDetail(state.selectedAssetId);
-                    alert("Data pulled successfully from Google Drive.");
+                    alert("Data pulled successfully.");
                 }
             }
         } catch (err) {
-            console.error("Manual pull failed:", err);
-            alert("Failed to pull data from Drive.");
+            console.error("Pull failed", err);
         }
     }
 
     async function manualPushToDrive() {
-        if (!state.config.gdrive.fileId) {
-            alert("Please connect to Google Drive and link a file first.");
-            return;
-        }
-        if (!accessToken) {
-            window._pushAfterAuth = true;
-            handleAuthClick();
-            return;
-        }
+        if (!state.config.gdrive.fileId) { alert("Link a file first."); return; }
+        if (!accessToken) { window._pushAfterAuth = true; handleAuthClick(); return; }
         await syncToDrive();
-        alert("Data successfully pushed to Google Drive.");
+        alert("Data pushed.");
     }
 
     async function forceUploadToDrive() {
-        if (!accessToken) {
-            window._forceUploadAfterAuth = true;
-            handleAuthClick();
-            return;
+        if (!accessToken) { window._forceUploadAfterAuth = true; handleAuthClick(); return; }
+        if (confirm("Upload local data to Drive and create master 'wealth_data.json'?")) {
+            await syncToDrive(true);
+            alert("Uploaded successfully.");
+            document.getElementById('connectDriveBtn').innerText = 'Connected';
         }
-        if (!confirm("This will upload your local data to Google Drive and create a master 'wealth_data.json' file that this app can manage. Continue?")) {
-            return;
-        }
-        await syncToDrive(true);
-        alert("Data uploaded successfully. Your app is now synced with Google Drive.");
-        document.getElementById('connectDriveBtn').innerText = 'Connected';
     }
 
     async function syncToDrive(isNew = false) {
-        // Ensure the Drive API is fully initialized before attempting to sync
-        if (!accessToken || !gapi.client.drive) {
-            console.warn("Drive API not ready for sync yet.");
-            return;
-        }
+        if (!accessToken || !gapi.client.drive || !gapi.client.drive.files) return;
         const content = JSON.stringify(state);
         setSyncStatus(true);
         
         try {
             if (isNew || !state.config.gdrive.fileId) {
-                // Step 1: Create the file with the correct name (Metadata only)
-                // This prevents the "Untitled" file issue in Drive v3
                 const createResponse = await gapi.client.drive.files.create({
                     name: 'wealth_data.json',
                     mimeType: 'application/json',
                     fields: 'id'
                 });
                 state.config.gdrive.fileId = createResponse.result.id;
-                
-                // Step 2: Upload the actual content
                 await gapi.client.drive.files.update({
                     fileId: state.config.gdrive.fileId,
                     media: { mimeType: 'application/json', body: content },
                 });
-                
-                // Persist fileId locally without triggering a recursive sync loop
                 localStorage.setItem('wealthTrackerData', JSON.stringify(state));
             } else {
-                // Standard update for existing file
                 await gapi.client.drive.files.update({
                     fileId: state.config.gdrive.fileId,
                     media: { mimeType: 'application/json', body: content },
                 });
             }
         } catch (err) {
-            console.error("Drive sync failed", err);
+            console.error("Sync failed", err);
         } finally {
             setSyncStatus(false);
         }
     }
 
-    // Asset Management
+    // Asset Management logic
     document.getElementById('assetForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const asset = {
@@ -726,10 +793,7 @@
             exclude: false,
             entries: []
         };
-        
-        // Defensive check: ensure assets array exists before pushing
         if (!state.assets) state.assets = [];
-        
         state.assets.push(asset);
         saveToLocalStorage();
         renderAssets();
@@ -737,7 +801,7 @@
     });
 
     function deleteAsset(id) {
-        if (confirm('Are you sure? This will delete all historical data for this asset.')) {
+        if (confirm('Delete asset and all its history?')) {
             state.assets = state.assets.filter(a => a.id !== id);
             saveToLocalStorage();
             renderAssets();
@@ -751,20 +815,45 @@
         renderAssets();
     }
 
+    function toggleEditAsset() {
+        const section = document.getElementById('editAssetSection');
+        const asset = state.assets.find(a => a.id === state.selectedAssetId);
+        if (!asset) return;
+
+        if (section.classList.contains('hidden')) {
+            section.classList.remove('hidden');
+            document.getElementById('editItemName').value = asset.name;
+            document.getElementById('editItemType').value = asset.type;
+            document.getElementById('editItemCategory').value = asset.category;
+            document.getElementById('editCountry').value = asset.country;
+        } else {
+            section.classList.add('hidden');
+        }
+    }
+
+    function saveAssetEdit() {
+        const asset = state.assets.find(a => a.id === state.selectedAssetId);
+        if (!asset) return;
+
+        asset.name = document.getElementById('editItemName').value;
+        asset.type = document.getElementById('editItemType').value;
+        asset.category = document.getElementById('editItemCategory').value;
+        asset.country = document.getElementById('editCountry').value;
+
+        saveToLocalStorage();
+        renderAssetDetail(state.selectedAssetId);
+        document.getElementById('editAssetSection').classList.add('hidden');
+    }
+
     // Entry Management
     document.getElementById('entryForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        const assetId = state.selectedAssetId;
-        const asset = state.assets.find(a => a.id === assetId);
+        const asset = state.assets.find(a => a.id === state.selectedAssetId);
         if (!asset) return;
-
-        // Defensive check: ensure entries array exists before pushing
-        if (!asset.entries) asset.entries = [];
 
         const newTimestamp = document.getElementById('entryDate').value;
         const newValue = parseFloat(document.getElementById('currentValue').value);
         
-        // Calculate static periodic change based on the chronological predecessor at entry time
         const sorted = [...asset.entries].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         let relativePrev = null;
         for (let i = sorted.length - 1; i >= 0; i--) {
@@ -785,17 +874,16 @@
             invested: parseFloat(document.getElementById('totalInvested').value)
         };
         
-        // Sort entries by date after adding
         asset.entries.push(entry);
         asset.entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
         saveToLocalStorage();
-        renderAssetDetail(assetId);
+        renderAssetDetail(state.selectedAssetId);
         e.target.reset();
         setDefaultDate();
     });
 
-    // Auto-calculate P/L and Return % based on Value and Investment inputs
+    // Auto-calculators
     const entryVal = document.getElementById('currentValue');
     const entryInv = document.getElementById('totalInvested');
     const entryPL = document.getElementById('currentPL');
@@ -809,7 +897,6 @@
         entryPerc.value = (inv !== 0) ? ((pl / inv) * 100).toFixed(2) : "0.00";
     }));
 
-    // User's specific request: calculate Total Invested and Return % based on Value and P/L inputs
     entryPL.addEventListener('input', () => {
         const val = parseFloat(entryVal.value) || 0;
         const pl = parseFloat(entryPL.value) || 0;
@@ -817,6 +904,16 @@
         entryInv.value = inv.toFixed(2);
         entryPerc.value = (inv !== 0) ? ((pl / inv) * 100).toFixed(2) : "0.00";
     });
+
+    function cloneLatestEntry() {
+        const asset = state.assets.find(a => a.id === state.selectedAssetId);
+        if (!asset || asset.entries.length === 0) return alert("No entries to clone.");
+        const latest = asset.entries[asset.entries.length - 1];
+        document.getElementById('currentValue').value = latest.value;
+        document.getElementById('totalInvested').value = latest.invested ?? (latest.value - latest.pl);
+        document.getElementById('currentPL').value = latest.pl;
+        document.getElementById('currentPercent').value = latest.percent;
+    }
 
     function deleteEntry(entryId) {
         const asset = state.assets.find(a => a.id === state.selectedAssetId);
@@ -827,14 +924,37 @@
         }
     }
 
-    // Rendering
+    // Selection Sum logic
+    function updateSelectedTotal() {
+        const checkboxes = document.querySelectorAll('.asset-checkbox:checked');
+        const summary = document.getElementById('selectionSummary');
+        const totalText = document.getElementById('selectedTotalText');
+        const rate = state.config.exchangeRate;
+
+        if (checkboxes.length === 0) { summary.classList.add('hidden'); return; }
+        summary.classList.remove('hidden');
+        
+        let totalINR = 0;
+        checkboxes.forEach(cb => {
+            const asset = state.assets.find(a => a.id == cb.dataset.id);
+            const latest = asset.entries[asset.entries.length - 1] || { value: 0 };
+            const val = latest.value ?? 0;
+            totalINR += asset.country === 'USA' ? val * rate : val;
+        });
+        totalText.innerHTML = `₹${totalINR.toLocaleString('en-IN', {maximumFractionDigits:0})} <span class="text-sm font-normal text-indigo-200 ml-2">≈ $${(totalINR / rate).toLocaleString('en-US', {maximumFractionDigits:2})}</span>`;
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('.asset-checkbox').forEach(cb => cb.checked = false);
+        updateSelectedTotal();
+    }
+
+    // UI Rendering
     function renderAssets() {
         const list = document.getElementById('assetList');
         list.innerHTML = '';
         const rate = state.config.exchangeRate;
 
-        // Sort assets by the recency of their last entry
-        // Items you updated most recently will move to the top
         const sortedAssets = [...state.assets].sort((a, b) => {
             const timeA = a.entries.length > 0 ? new Date(a.entries[a.entries.length - 1].timestamp).getTime() : 0;
             const timeB = b.entries.length > 0 ? new Date(b.entries[b.entries.length - 1].timestamp).getTime() : 0;
@@ -843,56 +963,28 @@
         });
 
         sortedAssets.forEach(asset => {
-            const entries = asset.entries || [];
-            const latest = entries[entries.length - 1] || {};
-            
+            const latest = asset.entries[asset.entries.length - 1] || {};
             const val = latest.value ?? 0;
             const pl = latest.pl ?? 0;
             const perc = latest.percent ?? 0;
             const periodicChange = latest.periodicChange ?? 0;
             const invested = latest.invested ?? (val - pl);
-            
             const symbol = asset.country === 'USA' ? '$' : '₹';
             const locale = asset.country === 'USA' ? 'en-US' : 'en-IN';
             const conv = (v) => asset.country === 'USA' ? `<p class="text-[10px] text-indigo-600 font-bold leading-none mt-0.5">≈ ₹${(v * rate).toLocaleString('en-IN', {maximumFractionDigits: 0})}</p>` : '';
 
             const card = `
                 <div class="bg-white p-5 rounded-lg shadow-sm border flex gap-4 items-center hover:shadow-md transition-shadow ${asset.exclude ? 'opacity-50 italic border-dashed' : ''}">
-                    <div class="flex items-center">
-                        <input type="checkbox" class="asset-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-id="${asset.id}" onchange="updateSelectedTotal()">
-                    </div>
+                    <div class="flex items-center"><input type="checkbox" class="asset-checkbox w-5 h-5 rounded border-gray-300 text-blue-600" data-id="${asset.id}" onchange="updateSelectedTotal()"></div>
                     <div onclick="openAssetDetail(${asset.id})" class="cursor-pointer flex-1">
                         <h3 class="text-lg font-bold text-gray-800">${asset.name}</h3>
                         <p class="text-xs text-gray-500 uppercase font-semibold">${asset.type} • ${asset.category} • ${asset.country}</p>
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
-                            <div>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase">Current Value</p>
-                                <p class="font-mono text-sm font-bold text-gray-700">${symbol}${val.toLocaleString(locale, {maximumFractionDigits: 0})}</p>
-                                ${conv(val)}
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase">Total Invested</p>
-                                <p class="font-mono text-sm font-bold text-gray-700">${symbol}${invested.toLocaleString(locale, {maximumFractionDigits: 0})}</p>
-                                ${conv(invested)}
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase">Periodic Change</p>
-                                <p class="font-mono text-sm ${periodicChange >= 0 ? 'text-green-600' : 'text-red-500'} font-bold">
-                                    ${periodicChange >= 0 ? '+' : ''}${symbol}${periodicChange.toLocaleString(locale, {maximumFractionDigits: 0})}
-                                </p>
-                                ${conv(periodicChange)}
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase">Tracking P/L</p>
-                                <p class="font-mono text-sm ${pl >= 0 ? 'text-green-600' : 'text-red-500'} font-medium">
-                                    ${pl >= 0 ? '+' : ''}${symbol}${pl.toLocaleString(locale, {maximumFractionDigits: 0})}
-                                </p>
-                                ${conv(pl)}
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase">Return %</p>
-                                <p class="font-mono text-sm text-gray-600 font-medium">${perc}%</p>
-                            </div>
+                            <div><p class="text-[10px] text-gray-400 font-bold uppercase">Current Value</p><p class="font-mono text-sm font-bold text-gray-700">${symbol}${val.toLocaleString(locale, {maximumFractionDigits: 0})}</p>${conv(val)}</div>
+                            <div><p class="text-[10px] text-gray-400 font-bold uppercase">Total Invested</p><p class="font-mono text-sm font-bold text-gray-700">${symbol}${invested.toLocaleString(locale, {maximumFractionDigits: 0})}</p>${conv(invested)}</div>
+                            <div><p class="text-[10px] text-gray-400 font-bold uppercase">Periodic Change</p><p class="font-mono text-sm ${periodicChange >= 0 ? 'text-green-600' : 'text-red-500'} font-bold">${periodicChange >= 0 ? '+' : ''}${symbol}${periodicChange.toLocaleString(locale, {maximumFractionDigits: 0})}</p>${conv(periodicChange)}</div>
+                            <div><p class="text-[10px] text-gray-400 font-bold uppercase">Tracking P/L</p><p class="font-mono text-sm ${pl >= 0 ? 'text-green-600' : 'text-red-500'} font-medium">${pl >= 0 ? '+' : ''}${symbol}${pl.toLocaleString(locale, {maximumFractionDigits: 0})}</p>${conv(pl)}</div>
+                            <div><p class="text-[10px] text-gray-400 font-bold uppercase">Return %</p><p class="font-mono text-sm text-gray-600 font-medium">${perc}%</p></div>
                         </div>
                     </div>
                     <div class="flex flex-col space-y-3 items-end">
@@ -900,7 +992,7 @@
                             <span class="text-[10px] uppercase font-black tracking-widest ${asset.exclude ? 'text-gray-400' : 'text-blue-600'}">Included</span>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" class="sr-only peer" ${!asset.exclude ? 'checked' : ''} onchange="toggleExclude(${asset.id})">
-                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
                         <button onclick="deleteAsset(${asset.id})" class="text-[10px] uppercase font-black tracking-widest text-red-400 hover:text-red-600">Delete</button>
@@ -926,86 +1018,11 @@
         renderAssets();
     }
 
-    function updateSelectedTotal() {
-        const checkboxes = document.querySelectorAll('.asset-checkbox:checked');
-        const summary = document.getElementById('selectionSummary');
-        const totalText = document.getElementById('selectedTotalText');
-        const rate = state.config.exchangeRate;
-
-        if (checkboxes.length === 0) {
-            summary.classList.add('hidden');
-            return;
-        }
-
-        summary.classList.remove('hidden');
-        let totalINR = 0;
-
-        checkboxes.forEach(cb => {
-            const asset = state.assets.find(a => a.id == cb.dataset.id);
-            const latest = asset.entries[asset.entries.length - 1] || { value: 0 };
-            const val = latest.value ?? 0;
-            totalINR += asset.country === 'USA' ? val * rate : val;
-        });
-
-        totalText.innerHTML = `₹${totalINR.toLocaleString(undefined, {maximumFractionDigits:0})} <span class="text-sm font-normal text-indigo-200 ml-2">≈ $${(totalINR / rate).toLocaleString(undefined, {maximumFractionDigits:2})}</span>`;
-    }
-
-    function clearSelection() {
-        document.querySelectorAll('.asset-checkbox').forEach(cb => cb.checked = false);
-        updateSelectedTotal();
-    }
-
-    function toggleEditAsset() {
-        const section = document.getElementById('editAssetSection');
-        const asset = state.assets.find(a => a.id === state.selectedAssetId);
-        if (!asset) return;
-
-        if (section.classList.contains('hidden')) {
-            section.classList.remove('hidden');
-            document.getElementById('editItemName').value = asset.name;
-            document.getElementById('editItemType').value = asset.type;
-            document.getElementById('editItemCategory').value = asset.category;
-            document.getElementById('editCountry').value = asset.country;
-        } else {
-            section.classList.add('hidden');
-        }
-    }
-
-    function saveAssetEdit() {
-        const assetId = state.selectedAssetId;
-        const asset = state.assets.find(a => a.id === assetId);
-        if (!asset) return;
-
-        asset.name = document.getElementById('editItemName').value;
-        asset.type = document.getElementById('editItemType').value;
-        asset.category = document.getElementById('editItemCategory').value;
-        asset.country = document.getElementById('editCountry').value;
-
-        saveToLocalStorage();
-        renderAssetDetail(assetId);
-        document.getElementById('editAssetSection').classList.add('hidden');
-    }
-
-    function cloneLatestEntry() {
-        const asset = state.assets.find(a => a.id === state.selectedAssetId);
-        if (!asset || asset.entries.length === 0) {
-            alert("No previous entries to clone.");
-            return;
-        }
-        const latest = asset.entries[asset.entries.length - 1];
-        document.getElementById('currentValue').value = latest.value;
-        document.getElementById('totalInvested').value = latest.invested ?? (latest.value - latest.pl);
-        document.getElementById('currentPL').value = latest.pl;
-        document.getElementById('currentPercent').value = latest.percent;
-    }
-
     function renderAssetDetail(id) {
         const asset = state.assets.find(a => a.id === id);
         if (!asset) return;
-
         document.getElementById('detailTitle').innerText = asset.name;
         document.getElementById('detailSubtitle').innerText = `${asset.type.toUpperCase()} • ${asset.category.toUpperCase()} • ${asset.country}`;
-
         const tbody = document.getElementById('detailEntriesBody');
         tbody.innerHTML = '';
         const symbol = asset.country === 'USA' ? '$' : '₹';
@@ -1013,529 +1030,296 @@
         const rate = state.config.exchangeRate;
         const conv = (v) => asset.country === 'USA' ? `<br><span class="text-[10px] text-indigo-500 font-bold">≈ ₹${(v * rate).toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>` : '';
 
-        const entries = asset.entries || [];
-        [...entries].reverse().forEach((entry) => {
+        [...asset.entries].reverse().forEach((entry) => {
             const val = entry.value ?? 0;
             const pl = entry.pl ?? 0;
             const perc = entry.percent ?? 0;
             const periodicChange = entry.periodicChange ?? 0;
             const invested = entry.invested ?? (val - pl);
             const date = new Date(entry.timestamp).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
-            
-            const row = `
+            tbody.innerHTML += `
                 <tr class="border-b hover:bg-gray-50">
                     <td class="p-3 font-medium text-gray-500 text-sm">${date}</td>
                     <td class="p-3 font-mono text-sm">${symbol}${val.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(val)}</td>
                     <td class="p-3 font-mono text-sm">${symbol}${invested.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(invested)}</td>
                     <td class="p-3 font-mono text-sm ${pl >= 0 ? 'text-green-600' : 'text-red-500'}">${symbol}${pl.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(pl)}</td>
                     <td class="p-3 font-mono text-sm text-gray-600">${perc}%</td>
-                    <td class="p-3 font-mono text-sm ${periodicChange >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}">
-                        ${periodicChange >= 0 ? '+' : ''}${symbol}${periodicChange.toLocaleString(locale, {maximumFractionDigits: 0})}
-                        ${conv(periodicChange)}
-                    </td>
-                    <td class="p-3 text-right">
-                        <button onclick="deleteEntry(${entry.id})" class="text-red-400 hover:text-red-600">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
+                    <td class="p-3 font-mono text-sm ${periodicChange >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}">${periodicChange >= 0 ? '+' : ''}${symbol}${periodicChange.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(periodicChange)}</td>
+                    <td class="p-3 text-right"><button onclick="deleteEntry(${entry.id})" class="text-red-400 hover:text-red-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td>
+                </tr>`;
         });
     }
 
-    // Calculations
+    // Consolidated Calculations
     function calculateTotals() {
         const rate = state.config.exchangeRate;
-        
-        let indiaAssets = 0;
-        let indiaLiabilities = 0;
-        let usaAssets = 0;
-        let usaLiabilities = 0;
-        let indiaMonthlyDiff = 0;
-        let usaMonthlyDiff = 0;
-        let indiaStockValue = 0;
-        let usaStockValue = 0;
+        let inAssets = 0, inLiabilities = 0, usAssets = 0, usLiabilities = 0;
+        let inDiff = 0, usDiff = 0, inStock = 0, usStock = 0;
+        let catAlloc = {};
 
         state.assets.filter(a => !a.exclude).forEach(asset => {
             const latest = asset.entries[asset.entries.length - 1] || {};
             const val = latest.value ?? 0;
-            const periodicChange = latest.periodicChange ?? 0;
+            const diff = latest.periodicChange ?? 0;
+            
+            if (asset.type === 'asset') {
+                const valINR = asset.country === 'USA' ? val * rate : val;
+                catAlloc[asset.category] = (catAlloc[asset.category] || 0) + valINR;
+            }
 
             if (asset.category === 'stock' && asset.type === 'asset') {
-                if (asset.country === 'India') indiaStockValue += val;
-                else usaStockValue += val;
+                if (asset.country === 'India') inStock += val; else usStock += val;
             }
             
             if (asset.country === 'India') {
-                if (asset.type === 'asset') {
-                    indiaAssets += val;
-                    indiaMonthlyDiff += periodicChange;
-                } else {
-                    indiaLiabilities += val;
-                    indiaMonthlyDiff -= periodicChange;
-                }
+                if (asset.type === 'asset') { inAssets += val; inDiff += diff; }
+                else { inLiabilities += val; inDiff -= diff; }
             } else {
-                if (asset.type === 'asset') {
-                    usaAssets += val;
-                    usaMonthlyDiff += periodicChange;
-                } else {
-                    usaLiabilities += val;
-                    usaMonthlyDiff -= periodicChange;
-                }
+                if (asset.type === 'asset') { usAssets += val; usDiff += diff; }
+                else { usLiabilities += val; usDiff -= diff; }
             }
         });
 
-        const indiaNet = indiaAssets - indiaLiabilities;
-        const usaNet = usaAssets - usaLiabilities;
+        const inNet = inAssets - inLiabilities;
+        const usNet = usAssets - usLiabilities;
+        const gAssetsINR = inAssets + (usAssets * rate);
+        const gNetINR = inNet + (usNet * rate);
+        const gStocksINR = inStock + (usStock * rate);
 
-        const grandTotalAssetsINR = indiaAssets + (usaAssets * rate);
-        const grandTotalAssetsUSD = (indiaAssets / rate) + usaAssets;
-
-        const grandTotalStocksINR = indiaStockValue + (usaStockValue * rate);
-        const grandTotalStocksUSD = (indiaStockValue / rate) + usaStockValue;
+        // Update Totals UI
+        const setVal = (id, text) => { if(document.getElementById(id)) document.getElementById(id).innerText = text; };
+        const setHTML = (id, html) => { if(document.getElementById(id)) document.getElementById(id).innerHTML = html; };
         
-        const globalNetWorthUSD = (indiaNet / rate) + usaNet;
-        const globalNetWorthINR = indiaNet + (usaNet * rate);
+        setVal('indiaAssetsINR', `₹${inAssets.toLocaleString('en-IN')}`);
+        setVal('indiaLiabilitiesINR', `₹${inLiabilities.toLocaleString('en-IN')}`);
+        setVal('indiaNetINR', `₹${inNet.toLocaleString('en-IN')}`);
+        const iDiffEl = document.getElementById('indiaMonthlyDiffINR');
+        if(iDiffEl) { iDiffEl.innerText = `${inDiff >= 0 ? '+' : ''}₹${inDiff.toLocaleString('en-IN')}`; iDiffEl.className = `text-xl font-bold ${inDiff >= 0 ? 'text-green-600' : 'text-red-500'}`; }
 
-        // Update India DOM
-        if (document.getElementById('indiaAssetsINR')) document.getElementById('indiaAssetsINR').innerText = `₹${indiaAssets.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
-        if (document.getElementById('indiaLiabilitiesINR')) document.getElementById('indiaLiabilitiesINR').innerText = `₹${indiaLiabilities.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
-        if (document.getElementById('indiaNetINR')) document.getElementById('indiaNetINR').innerText = `₹${indiaNet.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
-        
-        const indiaDiffElem = document.getElementById('indiaMonthlyDiffINR');
-        if (indiaDiffElem) {
-            indiaDiffElem.innerText = `${indiaMonthlyDiff >= 0 ? '+' : ''}₹${indiaMonthlyDiff.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
-            indiaDiffElem.className = `text-xl font-bold ${indiaMonthlyDiff >= 0 ? 'text-green-600' : 'text-red-500'}`;
-        }
+        const convStr = (v, isUS) => `<br><span class="text-xs font-bold text-indigo-400">≈ ₹${(v * rate).toLocaleString('en-IN')}</span>`;
+        setHTML('usaAssetsUSD', `$${usAssets.toLocaleString('en-US')}${convStr(usAssets)}`);
+        setHTML('usaLiabilitiesUSD', `$${usLiabilities.toLocaleString('en-US')}${convStr(usLiabilities)}`);
+        setHTML('usaNetUSD', `$${usNet.toLocaleString('en-US')}${convStr(usNet)}`);
+        const uDiffEl = document.getElementById('usaMonthlyDiffUSD');
+        if(uDiffEl) { uDiffEl.innerHTML = `${usDiff >= 0 ? '+' : ''}$${usDiff.toLocaleString('en-US')}${convStr(usDiff)}`; uDiffEl.className = `text-xl font-bold ${usDiff >= 0 ? 'text-green-600' : 'text-red-500'}`; }
 
-        // Update USA DOM
-        if (document.getElementById('usaAssetsUSD')) {
-            document.getElementById('usaAssetsUSD').innerHTML = `$${usaAssets.toLocaleString('en-US', {maximumFractionDigits:2})}<br><span class="text-xs font-bold text-indigo-400">≈ ₹${(usaAssets * rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</span>`;
-        }
-        if (document.getElementById('usaLiabilitiesUSD')) {
-            document.getElementById('usaLiabilitiesUSD').innerHTML = `$${usaLiabilities.toLocaleString('en-US', {maximumFractionDigits:2})}<br><span class="text-xs font-bold text-indigo-400">≈ ₹${(usaLiabilities * rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</span>`;
-        }
-        if (document.getElementById('usaNetUSD')) {
-            document.getElementById('usaNetUSD').innerHTML = `$${usaNet.toLocaleString('en-US', {maximumFractionDigits:2})}<br><span class="text-xs font-bold text-indigo-400">≈ ₹${(usaNet * rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</span>`;
-        }
+        setVal('grandTotalStocksINR', `₹${gStocksINR.toLocaleString('en-IN')}`);
+        setHTML('grandTotalStocksUSD', `≈ $${(gStocksINR/rate).toLocaleString('en-US')}`);
+        setVal('grandTotalAssetsINR', `₹${gAssetsINR.toLocaleString('en-IN')}`);
+        setHTML('grandTotalAssetsUSD', `≈ $${(gAssetsINR/rate).toLocaleString('en-US')}`);
+        setVal('globalNetWorthINR', `₹${gNetINR.toLocaleString('en-IN')}`);
 
-        const usaDiffElem = document.getElementById('usaMonthlyDiffUSD');
-        if (usaDiffElem) {
-            usaDiffElem.innerHTML = `${usaMonthlyDiff >= 0 ? '+' : ''}$${usaMonthlyDiff.toLocaleString('en-US', {maximumFractionDigits:2})}<br><span class="text-xs font-bold text-indigo-400">≈ ₹${(usaMonthlyDiff * rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</span>`;
-            usaDiffElem.className = `text-xl font-bold ${usaMonthlyDiff >= 0 ? 'text-green-600' : 'text-red-500'}`;
-        }
-
-        // Update Grand Total DOM
-        if (document.getElementById('grandTotalAssetsINR')) document.getElementById('grandTotalAssetsINR').innerText = `₹${grandTotalAssetsINR.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
-        if (document.getElementById('grandTotalAssetsUSD')) document.getElementById('grandTotalAssetsUSD').innerText = `≈ $${grandTotalAssetsUSD.toLocaleString('en-US', {maximumFractionDigits: 2})}`;
-        if (document.getElementById('globalNetWorthINR')) document.getElementById('globalNetWorthINR').innerText = `₹${globalNetWorthINR.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
-
-        // Update Stock Market Grand Total DOM
-        if (document.getElementById('grandTotalStocksINR')) document.getElementById('grandTotalStocksINR').innerText = `₹${grandTotalStocksINR.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
-        if (document.getElementById('grandTotalStocksUSD')) document.getElementById('grandTotalStocksUSD').innerText = `≈ $${grandTotalStocksUSD.toLocaleString('en-US', {maximumFractionDigits:2})}`;
-
-        // This will now also trigger renderNetWorthHistory, which is used by the chart
         const snapshots = renderNetWorthHistory();
         renderNetWorthHistoryChart(snapshots);
+        renderAllocationCharts(inNet, usNet * rate, catAlloc);
     }
 
     function renderNetWorthHistory() {
         const rate = state.config.exchangeRate;
         const historyBody = document.getElementById('netWorthHistoryBody');
         historyBody.innerHTML = '';
-
-        // This function now returns the snapshots for use by the chart
-        // 1. Collect all unique months (YYYY-MM) from all asset entries
         const allMonths = new Set();
-        state.assets.forEach(asset => {
-            asset.entries.forEach(entry => {
-                allMonths.add(entry.timestamp.substring(0, 7)); // Extract YYYY-MM
-            });
-        });
-
-        // 2. Sort months chronologically (newest first)
+        state.assets.forEach(a => a.entries.forEach(e => allMonths.add(e.timestamp.substring(0, 7))));
         const sortedMonths = Array.from(allMonths).sort().reverse();
 
-        // 3. Pre-calculate net worth for each month to allow difference comparison and chart data
-        const monthSnapshots = sortedMonths.map(monthKey => {
-            let inAssets = 0, inLiabilities = 0, usAssets = 0, usLiabilities = 0, inStocks = 0, usStocks = 0, inInv = 0, usInv = 0;
-            const endOfMonth = `${monthKey}-31`; 
-
+        const snapshots = sortedMonths.map(monthKey => {
+            let inA = 0, inL = 0, usA = 0, usL = 0, inS = 0, usS = 0, inI = 0, usI = 0;
+            const end = `${monthKey}-31`; 
             state.assets.filter(a => !a.exclude).forEach(asset => {
-                const historicalEntries = asset.entries.filter(e => e.timestamp <= endOfMonth);
-                if (historicalEntries.length > 0) {
-                    const latestEntry = historicalEntries[historicalEntries.length - 1];
-                    const val = latestEntry.value ?? 0;
-                    const pl = latestEntry.pl ?? 0;
-                    const inv = latestEntry.invested ?? (val - pl);
+                const hist = asset.entries.filter(e => e.timestamp <= end);
+                if (hist.length > 0) {
+                    const latest = hist[hist.length - 1];
+                    const val = latest.value ?? 0;
+                    const inv = latest.invested ?? (val - (latest.pl ?? 0));
                     if (asset.country === 'India') {
-                        if (asset.type === 'asset') {
-                            inAssets += val; inInv += inv;
-                            if (asset.category === 'stock') inStocks += val;
-                        } else {
-                            inLiabilities += val; inInv -= inv;
-                        }
+                        if (asset.type === 'asset') { inA += val; inI += inv; if (asset.category === 'stock') inS += val; }
+                        else { inL += val; inI -= inv; }
                     } else {
-                        if (asset.type === 'asset') {
-                            usAssets += val; usInv += inv;
-                            if (asset.category === 'stock') usStocks += val;
-                        } else {
-                            usLiabilities += val; usInv -= inv;
-                        }
+                        if (asset.type === 'asset') { usA += val; usI += inv; if (asset.category === 'stock') usS += val; }
+                        else { usL += val; usI -= inv; }
                     }
                 }
             });
-
-            return {
-                monthKey,
-                inNet: inAssets - inLiabilities,
-                usNet: usAssets - usLiabilities,
-                assetsINR: inAssets + (usAssets * rate),
-                liabilitiesINR: inLiabilities + (usLiabilities * rate),
-                totalNetINR: (inAssets - inLiabilities) + ((usAssets - usLiabilities) * rate),
-                stockNetINR: inStocks + (usStocks * rate),
-                totalInvestedINR: inInv + (usInv * rate)
-            };
+            return { monthKey, inNet: inA - inL, usNet: usA - usL, assetsINR: inA + (usA * rate), liabilitiesINR: inL + (usL * rate), totalNetINR: (inA - inL) + ((usA - usL) * rate), stockNetINR: inS + (usS * rate), totalInvestedINR: inI + (usI * rate) };
         });
 
-        // 4. Render rows with difference logic (and prepare data for chart)
-        monthSnapshots.forEach((snap, index) => {
-            const prevSnap = monthSnapshots[index + 1]; // Since sorted newest first, index+1 is previous month
-            
-            const inDiff = prevSnap ? snap.inNet - prevSnap.inNet : 0;
-            const usDiff = prevSnap ? snap.usNet - prevSnap.usNet : 0;
-            const totalDiff = prevSnap ? snap.totalNetINR - prevSnap.totalNetINR : 0;
-            const stockDiff = prevSnap ? snap.stockNetINR - prevSnap.stockNetINR : 0;
-
-            const displayMonth = new Date(snap.monthKey + "-02").toLocaleDateString(undefined, { 
-                month: 'short', 
-                year: 'numeric', 
-                timeZone: 'UTC' 
-            });
-
-            const getDiffClass = (val) => val >= 0 ? 'text-green-600' : 'text-red-500';
-            const formatDiff = (val, sym) => {
-                const locale = sym === '$' ? 'en-US' : 'en-IN';
-                const primary = `${val >= 0 ? '+' : ''}${sym}${Math.abs(val).toLocaleString(locale, {maximumFractionDigits: val < 100 && val !== 0 ? 2 : 0})}`;
-                if (sym === '$') {
-                    return `${primary}<br><span class="text-[10px] text-indigo-500">≈ ₹${(val * rate).toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>`;
-                }
-                return primary;
+        snapshots.forEach((snap, idx) => {
+            const prev = snapshots[idx + 1];
+            const inD = prev ? snap.inNet - prev.inNet : 0;
+            const usD = prev ? snap.usNet - prev.usNet : 0;
+            const tD = prev ? snap.totalNetINR - prev.totalNetINR : 0;
+            const sD = prev ? snap.stockNetINR - prev.stockNetINR : 0;
+            const displayMonth = new Date(snap.monthKey + "-02").toLocaleDateString(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' });
+            const fmt = (v, sym) => {
+                const loc = sym === '$' ? 'en-US' : 'en-IN';
+                const p = `${v >= 0 ? '+' : ''}${sym}${Math.abs(v).toLocaleString(loc, {maximumFractionDigits: v < 100 && v !== 0 ? 2 : 0})}`;
+                return sym === '$' ? `${p}<br><span class="text-[10px] text-indigo-500">≈ ₹${(v * rate).toLocaleString('en-IN')}</span>` : p;
             };
+            const cls = (v) => v >= 0 ? 'text-green-600' : 'text-red-500';
 
-            const row = `
-                <tr class="border-b hover:bg-gray-50 transition-colors">
+            historyBody.innerHTML += `
+                <tr class="border-b hover:bg-gray-50">
                     <td class="p-4 font-bold text-gray-700">${displayMonth}</td>
-                    <td class="p-4 font-mono text-sm text-gray-600">₹${snap.assetsINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                    <td class="p-4 font-mono text-sm text-red-400">₹${snap.liabilitiesINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                    <td class="p-4 font-mono font-bold ${snap.totalNetINR >= 0 ? 'text-indigo-600' : 'text-red-600'}">
-                        ₹${snap.totalNetINR.toLocaleString('en-IN', {maximumFractionDigits:0})}
-                    </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(inDiff)} font-medium">
-                        ${prevSnap ? formatDiff(inDiff, '₹') : '-'}
-                    </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(usDiff)} font-medium">
-                        ${prevSnap ? formatDiff(usDiff, '$') : '-'}
-                    </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(totalDiff)} font-bold">
-                        ${prevSnap ? formatDiff(totalDiff, '₹') : '-'}
-                    </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(stockDiff)} font-bold">
-                        ${prevSnap ? formatDiff(stockDiff, '₹') : '-'}
-                    </td>
-                </tr>
-            `;
-            historyBody.innerHTML += row;
+                    <td class="p-4 font-mono text-sm text-gray-600">₹${snap.assetsINR.toLocaleString('en-IN')}</td>
+                    <td class="p-4 font-mono text-sm text-red-400">₹${snap.liabilitiesINR.toLocaleString('en-IN')}</td>
+                    <td class="p-4 font-mono font-bold ${snap.totalNetINR >= 0 ? 'text-indigo-600' : 'text-red-600'}">₹${snap.totalNetINR.toLocaleString('en-IN')}</td>
+                    <td class="p-4 font-mono text-sm ${cls(inD)} font-medium">${prev ? fmt(inD, '₹') : '-'}</td>
+                    <td class="p-4 font-mono text-sm ${cls(usD)} font-medium">${prev ? fmt(usD, '$') : '-'}</td>
+                    <td class="p-4 font-mono text-sm ${cls(tD)} font-bold">${prev ? fmt(tD, '₹') : '-'}</td>
+                    <td class="p-4 font-mono text-sm ${cls(sD)} font-bold">${prev ? fmt(sD, '₹') : '-'}</td>
+                </tr>`;
         });
-
-        return monthSnapshots; // Return snapshots for chart
+        return snapshots;
     }
 
     function renderNetWorthHistoryChart(snapshots) {
-        if (!snapshots || snapshots.length === 0) return;
+        if (!snapshots.length) return;
         const ctx = document.getElementById('netWorthHistoryChart');
-        if (!ctx) return;
-
         let chart = Chart.getChart('netWorthHistoryChart');
         if (chart) chart.destroy();
-
-        // Show oldest data first on the chart
         const data = [...snapshots].reverse();
-        const labels = data.map(s => new Date(s.monthKey + "-02").toLocaleDateString(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' }));
-        
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Net Worth (INR)',
-                    data: data.map(s => s.totalNetINR),
-                    borderColor: '#4f46e5',
-                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
+                labels: data.map(s => new Date(s.monthKey + "-02").toLocaleDateString(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' })),
+                datasets: [{ label: 'Net Worth', data: data.map(s => s.totalNetINR), borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.1)', fill: true, tension: 0.3 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } } }
         });
+    }
+
+    function renderAllocationCharts(indiaNet, usaNetINR, categories) {
+        const geoCtx = document.getElementById('geoChart').getContext('2d');
+        const catCtx = document.getElementById('catChart').getContext('2d');
+        let geoChart = Chart.getChart('geoChart'); if (geoChart) geoChart.destroy();
+        new Chart(geoCtx, { type: 'doughnut', data: { labels: ['India', 'USA'], datasets: [{ data: [Math.max(0, indiaNet), Math.max(0, usaNetINR)], backgroundColor: ['#4f46e5', '#10b981'], borderWidth: 0 }] }, options: { plugins: { legend: { position: 'bottom' } }, cutout: '70%' } });
+        let catChart = Chart.getChart('catChart'); if (catChart) catChart.destroy();
+        new Chart(catCtx, { type: 'doughnut', data: { labels: Object.keys(categories).map(l => l.charAt(0).toUpperCase() + l.slice(1)), datasets: [{ data: Object.values(categories), backgroundColor: ['#8b5cf6', '#3b82f6', '#f59e0b', '#ec4899'], borderWidth: 0 }] }, options: { plugins: { legend: { position: 'bottom' } }, cutout: '70%' } });
     }
 
     function calculateProjections() {
         const targetVal = document.getElementById('projTargetDate').value;
-        if (!targetVal) return alert("Please select a target month and year");
-        
+        if (!targetVal) return alert("Select target month.");
         const targetDate = new Date(targetVal + "-01");
         const returns = parseFloat(document.getElementById('projReturn').value) / 100;
         const indiaSIP = parseFloat(document.getElementById('projIndiaSIP').value) || 0;
         const usaSIP = parseFloat(document.getElementById('projUsaSIP').value) || 0;
-
         const now = new Date();
         const diffMonths = (targetDate.getFullYear() - now.getFullYear()) * 12 + (targetDate.getMonth() - now.getMonth());
-        const durationYears = diffMonths / 12;
-        
-        if(diffMonths <= 0) return alert("Target date must be in the future");
+        if(diffMonths <= 0) return alert("Target must be in future.");
 
         const rate = state.config.exchangeRate;
-        let indiaStockValue = 0;
-        let usaStockValue = 0;
-
-        state.assets.filter(a => a.category === 'stock' && a.type === 'asset' && !a.exclude).forEach(asset => {
-            const latest = asset.entries[asset.entries.length - 1] || {};
-            const val = latest.value ?? 0;
-            if (asset.country === 'India') indiaStockValue += val;
-            else usaStockValue += val;
-        });
-
-        const currentTotalINR = indiaStockValue + (usaStockValue * rate);
-        
-        let currentInvestedINR = 0;
+        let inStock = 0, usStock = 0, currentInvINR = 0;
         state.assets.filter(a => !a.exclude).forEach(asset => {
             const latest = asset.entries[asset.entries.length - 1] || {};
             const val = latest.value ?? 0;
-            const pl = latest.pl ?? 0;
-            const inv = latest.invested ?? (val - pl);
+            const inv = latest.invested ?? (val - (latest.pl ?? 0));
             const invINR = asset.country === 'USA' ? inv * rate : inv;
-            asset.type === 'asset' ? currentInvestedINR += invINR : currentInvestedINR -= invINR;
+            asset.type === 'asset' ? currentInvINR += invINR : currentInvINR -= invINR;
+            if (asset.category === 'stock' && asset.type === 'asset') { if (asset.country === 'India') inStock += val; else usStock += val; }
         });
 
+        const currentINR = inStock + (usStock * rate);
         const monthlyRate = returns / 12;
-        const totalMonthlySIP_INR = indiaSIP + (usaSIP * rate);
+        const totalSIP = indiaSIP + (usaSIP * rate);
+        const fvL = currentINR * Math.pow(1 + monthlyRate, diffMonths);
+        const fvS = totalSIP > 0 ? totalSIP * ((Math.pow(1 + monthlyRate, diffMonths) - 1) / monthlyRate) : 0;
+        const totalFV = fvL + fvS;
 
-        // Lumpsum Growth: PV * (1 + i)^n
-        const fvLumpsum = currentTotalINR * Math.pow(1 + monthlyRate, diffMonths);
-        
-        // SIP Growth: PMT * [((1 + i)^n - 1) / i]
-        const fvSIP = totalMonthlySIP_INR > 0 ? totalMonthlySIP_INR * ((Math.pow(1 + monthlyRate, diffMonths) - 1) / monthlyRate) : 0;
-
-        const futureValueINR = fvLumpsum + fvSIP;
-        const futureValueUSD = futureValueINR / rate;
-        
         document.getElementById('projectionResult').innerHTML = `
             <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
-                    <div>
-                        <p class="uppercase font-bold text-[10px] tracking-widest">India Stocks</p>
-                        <p class="font-mono font-bold text-gray-700">₹${indiaStockValue.toLocaleString('en-IN')}</p>
-                    </div>
-                    <div>
-                        <p class="uppercase font-bold text-[10px] tracking-widest">USA Stocks</p>
-                        <p class="font-mono font-bold text-gray-700">$${usaStockValue.toLocaleString('en-US')}</p>
-                    </div>
+                    <div><p class="uppercase font-bold text-[10px]">India Stocks</p><p class="font-mono font-bold">₹${inStock.toLocaleString('en-IN')}</p></div>
+                    <div><p class="uppercase font-bold text-[10px]">USA Stocks</p><p class="font-mono font-bold">$${usStock.toLocaleString('en-US')}</p></div>
                 </div>
-                <div>
-                    <p class="text-sm text-gray-400 uppercase font-black tracking-tighter">Current Base (INR)</p>
-                    <p class="text-xl font-bold text-gray-800">₹${currentTotalINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-                </div>
+                <div><p class="text-sm text-gray-400 font-black">Current Base (INR)</p><p class="text-xl font-bold">₹${currentINR.toLocaleString('en-IN')}</p></div>
                 <hr class="border-dashed">
-                <div>
-                    <p class="text-sm text-gray-400 uppercase font-black tracking-tighter">Projected Lumpsum Growth</p>
-                    <p class="text-xl font-bold text-gray-800">₹${fvLumpsum.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-400 uppercase font-black tracking-tighter">Projected SIP Growth</p>
-                    <p class="text-xl font-bold text-gray-800">₹${fvSIP.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-400 uppercase font-black tracking-tighter">Projected Value in ${targetDate.toLocaleDateString(undefined, {month:'short', year:'numeric'})}</p>
-                    <p class="text-3xl font-black text-green-600">₹${futureValueINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-                    <p class="text-sm text-gray-400 font-bold mt-1">≈ $${futureValueUSD.toLocaleString('en-US', {maximumFractionDigits:2})}</p>
-                </div>
-            </div>
-        `;
+                <div><p class="text-sm text-gray-400 font-black">Lumpsum Growth</p><p class="text-xl font-bold">₹${fvL.toLocaleString('en-IN')}</p></div>
+                <div><p class="text-sm text-gray-400 font-black">SIP Growth</p><p class="text-xl font-bold">₹${fvS.toLocaleString('en-IN')}</p></div>
+                <div><p class="text-sm text-gray-400 font-black">Total Projected (${targetDate.toLocaleDateString(undefined, {month:'short', year:'numeric'})})</p><p class="text-3xl font-black text-green-600">₹${totalFV.toLocaleString('en-IN')}</p><p class="text-sm text-gray-400 font-bold mt-1">≈ $${(totalFV/rate).toLocaleString('en-US')}</p></div>
+            </div>`;
 
-        // --- Chart Rendering ---
         const ctx = document.getElementById('projectionChart').getContext('2d');
-        let projectionChart = Chart.getChart('projectionChart'); // Get existing chart instance if any
-        if (projectionChart) {
-            projectionChart.destroy(); // Destroy to re-render with new data
-        }
+        let chart = Chart.getChart('projectionChart'); if (chart) chart.destroy();
+        const allSnaps = renderNetWorthHistory();
+        const histData = allSnaps.filter(s => new Date(s.monthKey + '-01') <= now).slice(0, 24).reverse();
+        
+        const labels = [...histData.map(s => new Date(s.monthKey + '-01').toLocaleDateString(undefined, { month: 'short', year: 'numeric' }))];
+        const valData = [...histData.map(s => s.totalNetINR)];
+        const invData = [...histData.map(s => s.totalInvestedINR)];
 
-        // Get historical data (last 12-24 months)
-        const allMonthSnapshots = renderNetWorthHistory(); // Re-use the function to get snapshots
-        const historicalDataPoints = allMonthSnapshots
-            .filter(snap => new Date(snap.monthKey + '-01') <= new Date()) // Only past months
-            .slice(0, 24) // Get last 24 months
-            .reverse(); // Show oldest first
-
-        const historicalLabels = historicalDataPoints.map(snap => new Date(snap.monthKey + '-01').toLocaleDateString(undefined, { month: 'short', year: 'numeric' }));
-        const historicalValues = historicalDataPoints.map(snap => snap.totalNetINR);
-        const historicalInvestedValues = historicalDataPoints.map(snap => snap.totalInvestedINR);
-
-        // Determine where historical data ends
-        const lastSnap = historicalDataPoints[historicalDataPoints.length - 1];
-        const lastVal = historicalValues.length > 0 ? historicalValues[historicalValues.length - 1] : currentTotalINR;
-        const startYear = lastSnap ? new Date(lastSnap.monthKey).getFullYear() : now.getFullYear();
-
-        // Generate projected data points
-        const projectedLabels = [];
-        const projectedValues = [];
-        const targetYear = targetDate.getFullYear();
-
-        for (let y = startYear; y <= targetYear; y++) {
-            const yearsFromNow = y - now.getFullYear();
-            const m = Math.max(0, yearsFromNow * 12);
-            const fvL = currentTotalINR * Math.pow(1 + monthlyRate, m);
-            const fvS = totalMonthlySIP_INR > 0 ? totalMonthlySIP_INR * ((Math.pow(1 + monthlyRate, m) - 1) / monthlyRate) : 0;
-            
-            projectedValues.push(fvL + fvS);
-            projectedLabels.push(y.toString());
-        }
-
-        // Combine historical and projected data for the chart
-        const filteredProjLabels = projectedLabels.filter(l => !historicalLabels.includes(l) && l !== now.getFullYear().toString());
-        const filteredProjValues = projectedValues.slice(projectedLabels.length - filteredProjLabels.length);
-
-        const labels = [...historicalLabels, ...filteredProjLabels];
-        const data = [...historicalValues, ...filteredProjValues];
-        const investedData = [...historicalInvestedValues, ...filteredProjLabels.map(() => currentInvestedINR)];
-
-        projectionChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Portfolio Value (INR)',
-                        data: data,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1,
-                        fill: false
-                    },
-                    {
-                        label: 'Invested Amount (INR)',
-                        data: investedData,
-                        borderColor: 'rgb(255, 99, 132)',
-                        tension: 0.1,
-                        fill: false,
-                        borderDash: [5, 5],
-                        pointRadius: 0
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Historical Net Worth vs. Projected Growth (INR)'
-                    }
-                },
-                scales: {
-                    y: { beginAtZero: false }
-                }
+        for (let y = now.getFullYear(); y <= targetDate.getFullYear(); y++) {
+            if (!labels.includes(y.toString())) {
+                const m = (y - now.getFullYear()) * 12;
+                const fL = currentINR * Math.pow(1 + monthlyRate, m);
+                const fS = totalSIP > 0 ? totalSIP * ((Math.pow(1 + monthlyRate, m) - 1) / monthlyRate) : 0;
+                labels.push(y.toString()); valData.push(fL + fS); invData.push(currentInvINR + (totalSIP * m));
             }
-        });
+        }
+
+        new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Portfolio Value', data: valData, borderColor: '#4bc0c0', fill: false }, { label: 'Invested', data: invData, borderColor: '#ff6384', borderDash: [5, 5], pointRadius: 0, fill: false }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Growth Projection (INR)' } } } });
     }
 
     function calculateSIP() {
-        const targetINR = parseFloat(document.getElementById('sipTarget').value);
-        const targetDate = new Date(document.getElementById('sipDate').value);
-        const annualReturn = parseFloat(document.getElementById('sipReturn').value) / 100;
+        const target = parseFloat(document.getElementById('sipTarget').value);
+        const date = new Date(document.getElementById('sipDate').value);
+        const ret = parseFloat(document.getElementById('sipReturn').value) / 100;
         const rate = state.config.exchangeRate;
-
-        if(!targetINR || isNaN(targetDate)) return alert("Please enter target details");
-
-        const months = (targetDate.getFullYear() - new Date().getFullYear()) * 12 + (targetDate.getMonth() - new Date().getMonth());
-        if(months <= 0) return alert("Date must be in the future");
-
-        let currentHoldingsINR = 0;
-        state.assets.filter(a => !a.exclude && a.type === 'asset').forEach(asset => {
-            const latest = asset.entries[asset.entries.length - 1] || { value: 0 };
-            currentHoldingsINR += (asset.country === 'India' ? latest.value : latest.value * rate);
+        if(!target || isNaN(date)) return alert("Enter target.");
+        const months = (date.getFullYear() - new Date().getFullYear()) * 12 + (date.getMonth() - new Date().getMonth());
+        if(months <= 0) return alert("Date must be in future.");
+        let current = 0;
+        state.assets.filter(a => !a.exclude && a.type === 'asset').forEach(a => {
+            const l = a.entries[a.entries.length - 1] || { value: 0 };
+            current += (a.country === 'India' ? l.value : l.value * rate);
         });
-
-        const monthlyRate = annualReturn / 12;
-        const fvCurrent = currentHoldingsINR * Math.pow((1 + monthlyRate), months);
-        const gap = targetINR - fvCurrent;
-
-        if(gap <= 0) {
-            document.getElementById('sipResult').innerHTML = "<div class='text-green-600 font-bold'>✨ You will reach your target with your current assets alone!</div>";
-            return;
-        }
-
-        const sipRequired = gap / ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate * (1 + monthlyRate));
-
-        document.getElementById('sipResult').innerHTML = `
-            <div class="space-y-2">
-                <p class="text-xs text-gray-500">Future Value of Current Portfolio: ₹${fvCurrent.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-                <p class="text-xs text-gray-500 text-red-500 font-bold">Shortfall: ₹${gap.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-                <hr class="my-4">
-                <p class="text-sm text-gray-400 uppercase font-black">Recommended Monthly SIP</p>
-                <p class="text-3xl font-black text-gray-800">₹${sipRequired.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-            </div>
-        `;
+        const mRet = ret / 12;
+        const fvC = current * Math.pow(1 + mRet, months);
+        const gap = target - fvC;
+        if(gap <= 0) { document.getElementById('sipResult').innerHTML = "<div class='text-green-600 font-bold'>Target reached with current assets!</div>"; return; }
+        const sip = gap / ((Math.pow(1 + mRet, months) - 1) / mRet);
+        document.getElementById('sipResult').innerHTML = `<div class="space-y-2"><p class="text-xs text-gray-500">Current Portfolio FV: ₹${fvC.toLocaleString('en-IN')}</p><p class="text-xs text-gray-500 text-red-500 font-bold">Shortfall: ₹${gap.toLocaleString('en-IN')}</p><hr class="my-4"><p class="text-sm text-gray-400 uppercase font-black">Monthly SIP Needed</p><p class="text-3xl font-black text-gray-800">₹${sip.toLocaleString('en-IN')}</p></div>`;
     }
 
-    // Data Export/Import
+    // Local File & Import/Export
+    async function linkLocalFile() {
+        if (window.location.protocol === 'file:') return alert("Use a local server (e.g. VS Code Live Server) to link files.");
+        try {
+            [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] });
+            await readFileContent();
+            document.getElementById('linkFileBtn').innerText = "Linked: " + fileHandle.name;
+            document.getElementById('reloadFileBtn').classList.remove('hidden');
+        } catch (e) {}
+    }
+
+    async function readFileContent() {
+        if (!fileHandle) return;
+        try {
+            const f = await fileHandle.getFile(); const c = await f.text();
+            if (c) { const i = JSON.parse(c); state = { ...state, ...i, assets: i.assets || [] }; state.assets.forEach(a => { if(!a.entries) a.entries = []; }); localStorage.setItem('wealthTrackerData', JSON.stringify(state)); renderAssets(); calculateTotals(); }
+        } catch (e) { alert("Read failed: " + e.message); }
+    }
+
+    async function saveToFile() {
+        if (!fileHandle) return;
+        try {
+            if (await fileHandle.queryPermission({mode: 'readwrite'}) !== 'granted') await fileHandle.requestPermission({mode: 'readwrite'});
+            const w = await fileHandle.createWritable(); await w.write(JSON.stringify(state, null, 2)); await w.close();
+        } catch (e) {}
+    }
+
     function exportData() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "data.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        const d = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+        const a = document.createElement('a'); a.href = d; a.download = "wealth_data.json"; a.click();
     }
 
-    function importData(event) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const imported = JSON.parse(e.target.result);
-                if ((imported.entries || imported.assets) && imported.config) {
-                    // Safely migrate or load imported data
-                    state = {
-                        ...state,
-                        ...imported,
-                        assets: imported.assets || []
-                    };
-                    state.assets.forEach(a => { if(!a.entries) a.entries = []; });
-                    saveToLocalStorage();
-                    renderAssets();
-                    alert("Data loaded successfully!");
-                }
-            } catch (err) {
-                alert("Invalid JSON file.");
-            }
-        };
-        reader.readAsText(event.target.files[0]);
+    function importData(e) {
+        const r = new FileReader();
+        r.onload = (ev) => { try { const i = JSON.parse(ev.target.result); state = { ...state, ...i, assets: i.assets || [] }; state.assets.forEach(a => { if(!a.entries) a.entries = []; }); saveToLocalStorage(); renderAssets(); alert("Imported."); } catch (err) { alert("Invalid JSON."); } };
+        r.readAsText(e.target.files[0]);
     }
 
-    function resetData() {
-        if (confirm('Are you sure you want to reset everything? This will permanently delete all your assets and history from this browser. It is recommended to download your data as a backup first.')) {
-            localStorage.removeItem('wealthTrackerData');
-            location.reload();
-        }
-    }
+    function resetData() { if (confirm('Reset everything? (Download backup first)')) { localStorage.removeItem('wealthTrackerData'); location.reload(); } }
 </script>
-
 </body>
 </html>
