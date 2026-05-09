@@ -483,57 +483,80 @@
     }
 
     async function initializeDriveFile() {
-        await gapi.client.init({
-            apiKey: document.getElementById('gdriveApiKey').value || state.config.gdrive.apiKey,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        });
-
-        // Search for existing file
-        const response = await gapi.client.drive.files.list({
-            q: "name = 'wealth_data.json' and trashed = false",
-            fields: 'files(id, name)',
-        });
-
-        const files = response.result.files;
-        if (files && files.length > 0) {
-            state.config.gdrive.fileId = files[0].id;
-            // Pull latest data
-            const fileContent = await gapi.client.drive.files.get({
-                fileId: state.config.gdrive.fileId,
-                alt: 'media',
+        try {
+            await gapi.client.init({
+                apiKey: document.getElementById('gdriveApiKey').value || state.config.gdrive.apiKey,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
-            
-            if (confirm("Found existing data on Google Drive. Overwrite local data with Drive data?")) {
-                const remoteState = fileContent.result;
-                state.assets = remoteState.assets;
-                state.config.exchangeRate = remoteState.config.exchangeRate;
-                saveToLocalStorage();
-                renderAssets();
+
+            // Search for existing file
+            const response = await gapi.client.drive.files.list({
+                q: "name = 'wealth_data.json' and trashed = false",
+                fields: 'files(id, name)',
+            });
+
+            const files = response.result.files;
+            if (files && files.length > 0) {
+                state.config.gdrive.fileId = files[0].id;
+                console.log("File found on Drive:", state.config.gdrive.fileId);
+                
+                // Pull latest data
+                const fileContent = await gapi.client.drive.files.get({
+                    fileId: state.config.gdrive.fileId,
+                    alt: 'media',
+                });
+                
+                const remoteData = typeof fileContent.result === 'string' ? JSON.parse(fileContent.result) : fileContent.result;
+
+                if (remoteData && confirm("Found existing data on Google Drive. Overwrite local data?")) {
+                    // Update the state deeply
+                    state.assets = remoteData.assets || [];
+                    if (remoteData.config) {
+                        state.config.exchangeRate = remoteData.config.exchangeRate || state.config.exchangeRate;
+                    }
+                    
+                    // Save locally without triggering an immediate re-upload loop
+                    localStorage.setItem('wealthTrackerData', JSON.stringify(state));
+                    renderAssets();
+                    calculateTotals(); // Refresh UI totals
+                    alert("Data synchronized from Google Drive.");
+                }
+            } else {
+                console.log("No file found with name 'wealth_data.json' that this app has permission to see.");
+                // Create new file
+                await syncToDrive(true);
             }
-        } else {
-            // Create new file
-            await syncToDrive(true);
+            document.getElementById('connectDriveBtn').innerText = 'Connected';
+        } catch (err) {
+            console.error("Error initializing Drive file:", err);
+            alert("Failed to fetch data from Drive. Check console for details.");
         }
-        document.getElementById('connectDriveBtn').innerText = 'Connected';
     }
 
     async function syncToDrive(isNew = false) {
-        const metadata = {
-            name: 'wealth_data.json',
-            mimeType: 'application/json',
-        };
         const content = JSON.stringify(state);
         
         try {
             if (isNew || !state.config.gdrive.fileId) {
-                const file = await gapi.client.drive.files.create({
-                    resource: metadata,
-                    media: { mimeType: 'application/json', body: content },
-                    fields: 'id',
+                // Step 1: Create the file with the correct name (Metadata only)
+                // This prevents the "Untitled" file issue in Drive v3
+                const createResponse = await gapi.client.drive.files.create({
+                    name: 'wealth_data.json',
+                    mimeType: 'application/json',
+                    fields: 'id'
                 });
-                state.config.gdrive.fileId = file.result.id;
-                saveToLocalStorage();
+                state.config.gdrive.fileId = createResponse.result.id;
+                
+                // Step 2: Upload the actual content
+                await gapi.client.drive.files.update({
+                    fileId: state.config.gdrive.fileId,
+                    media: { mimeType: 'application/json', body: content },
+                });
+                
+                // Persist fileId locally without triggering a recursive sync loop
+                localStorage.setItem('wealthTrackerData', JSON.stringify(state));
             } else {
+                // Standard update for existing file
                 await gapi.client.drive.files.update({
                     fileId: state.config.gdrive.fileId,
                     media: { mimeType: 'application/json', body: content },
