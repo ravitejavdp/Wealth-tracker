@@ -348,6 +348,9 @@
                     <button id="connectDriveBtn" onclick="handleAuthClick()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">
                         Connect Google Drive
                     </button>
+                    <button id="disconnectDriveBtn" onclick="disconnectDrive()" class="bg-gray-400 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
+                        Disconnect
+                    </button>
                     <button id="pullDriveBtn" onclick="pullFromDrive()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
                         Pull Latest from Drive
                     </button>
@@ -473,18 +476,12 @@
                 if (resp.error !== undefined) throw (resp);
                 accessToken = resp.access_token;
                 
-                const statusDot = document.querySelector('#driveStatus span:first-child');
-                document.getElementById('driveStatus').classList.remove('hidden');
-                document.getElementById('pullDriveBtn').classList.remove('hidden');
-                if (statusDot) {
-                    statusDot.classList.replace('bg-gray-400', 'bg-green-500');
-                }
+                updateDriveUI(true);
 
                 if (window._pullAfterAuth) {
                     window._pullAfterAuth = false;
                     pullFromDrive(false);
                 } else {
-                    document.getElementById('connectDriveBtn').innerText = 'Syncing...';
                     initializeDriveFile();
                 }
             },
@@ -493,12 +490,39 @@
 
         // Restore UI visibility if file was previously linked
         if (state.config.gdrive.fileId) {
-            document.getElementById('driveStatus').classList.remove('hidden');
-            document.getElementById('pullDriveBtn').classList.remove('hidden');
-            const statusDot = document.querySelector('#driveStatus span:first-child');
-            if (statusDot) {
-                statusDot.classList.replace('bg-green-500', 'bg-gray-400');
-            }
+            updateDriveUI(false);
+        }
+    }
+
+    function updateDriveUI(isActive) {
+        const statusDot = document.querySelector('#driveStatus span:first-child');
+        const statusText = document.querySelector('#driveStatus span:last-child');
+        const connectBtn = document.getElementById('connectDriveBtn');
+        const disconnectBtn = document.getElementById('disconnectDriveBtn');
+        const pullBtn = document.getElementById('pullDriveBtn');
+
+        document.getElementById('driveStatus').classList.remove('hidden');
+        if (pullBtn) pullBtn.classList.remove('hidden');
+        if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+
+        if (isActive) {
+            if (statusDot) { statusDot.classList.remove('bg-gray-400'); statusDot.classList.add('bg-green-500'); }
+            if (statusText) statusText.innerText = 'Drive Active';
+            if (connectBtn) connectBtn.innerText = 'Session Active';
+        } else {
+            if (statusDot) { statusDot.classList.remove('bg-green-500'); statusDot.classList.add('bg-gray-400'); }
+            if (statusText) statusText.innerText = 'Session Expired';
+            if (connectBtn) connectBtn.innerText = 'Reconnect Google Drive';
+        }
+    }
+
+    function disconnectDrive() {
+        if (confirm("Disconnect Google Drive? This will stop syncing but keep your local data.")) {
+            state.config.gdrive.fileId = null;
+            accessToken = null;
+            // Direct localStorage save to prevent triggering a recursive sync creation
+            localStorage.setItem('wealthTrackerData', JSON.stringify(state));
+            location.reload();
         }
     }
 
@@ -519,6 +543,7 @@
                 q: "name = 'wealth_data.json' and trashed = false",
                 fields: 'files(id, name)',
             });
+            document.getElementById('connectDriveBtn').innerText = 'Connected';
 
             const files = response.result.files;
             if (files && files.length > 0) {
