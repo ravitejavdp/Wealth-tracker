@@ -348,6 +348,9 @@
                     <button id="connectDriveBtn" onclick="handleAuthClick()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">
                         Connect Google Drive
                     </button>
+                    <button id="pullDriveBtn" onclick="pullFromDrive()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
+                        Pull Latest from Drive
+                    </button>
                     <div id="driveStatus" class="flex items-center gap-2 hidden">
                         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Drive Connected</span>
@@ -470,6 +473,7 @@
                 if (resp.error !== undefined) throw (resp);
                 accessToken = resp.access_token;
                 document.getElementById('driveStatus').classList.remove('hidden');
+                document.getElementById('pullDriveBtn').classList.remove('hidden');
                 document.getElementById('connectDriveBtn').innerText = 'Syncing...';
                 initializeDriveFile();
             },
@@ -499,28 +503,7 @@
             if (files && files.length > 0) {
                 state.config.gdrive.fileId = files[0].id;
                 console.log("File found on Drive:", state.config.gdrive.fileId);
-                
-                // Pull latest data
-                const fileContent = await gapi.client.drive.files.get({
-                    fileId: state.config.gdrive.fileId,
-                    alt: 'media',
-                });
-                
-                const remoteData = typeof fileContent.result === 'string' ? JSON.parse(fileContent.result) : fileContent.result;
-
-                if (remoteData && confirm("Found existing data on Google Drive. Overwrite local data?")) {
-                    // Update the state deeply
-                    state.assets = remoteData.assets || [];
-                    if (remoteData.config) {
-                        state.config.exchangeRate = remoteData.config.exchangeRate || state.config.exchangeRate;
-                    }
-                    
-                    // Save locally without triggering an immediate re-upload loop
-                    localStorage.setItem('wealthTrackerData', JSON.stringify(state));
-                    renderAssets();
-                    calculateTotals(); // Refresh UI totals
-                    alert("Data synchronized from Google Drive.");
-                }
+                await pullFromDrive(true); // Initial pull with confirmation
             } else {
                 console.log("No file found with name 'wealth_data.json' that this app has permission to see.");
                 // Create new file
@@ -530,6 +513,41 @@
         } catch (err) {
             console.error("Error initializing Drive file:", err);
             alert("Failed to fetch data from Drive. Check console for details.");
+        }
+    }
+
+    async function pullFromDrive(withConfirm = false) {
+        if (!accessToken || !state.config.gdrive.fileId) {
+            alert("Please connect to Google Drive first.");
+            return;
+        }
+
+        try {
+            const fileContent = await gapi.client.drive.files.get({
+                fileId: state.config.gdrive.fileId,
+                alt: 'media',
+            });
+            
+            const remoteData = typeof fileContent.result === 'string' ? JSON.parse(fileContent.result) : fileContent.result;
+
+            if (remoteData) {
+                if (!withConfirm || confirm("Found data on Google Drive. Overwrite local data with Drive data?")) {
+                    // Deep update state
+                    state.assets = remoteData.assets || [];
+                    if (remoteData.config) {
+                        state.config.exchangeRate = remoteData.config.exchangeRate || state.config.exchangeRate;
+                    }
+                    
+                    // Persist locally without triggering the syncToDrive loop
+                    localStorage.setItem('wealthTrackerData', JSON.stringify(state));
+                    renderAssets();
+                    if (state.selectedAssetId) renderAssetDetail(state.selectedAssetId);
+                    alert("Data pulled successfully from Google Drive.");
+                }
+            }
+        } catch (err) {
+            console.error("Manual pull failed:", err);
+            alert("Failed to pull data from Drive.");
         }
     }
 
