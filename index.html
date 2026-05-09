@@ -472,13 +472,34 @@
             callback: (resp) => {
                 if (resp.error !== undefined) throw (resp);
                 accessToken = resp.access_token;
+                
+                const statusDot = document.querySelector('#driveStatus span:first-child');
                 document.getElementById('driveStatus').classList.remove('hidden');
                 document.getElementById('pullDriveBtn').classList.remove('hidden');
-                document.getElementById('connectDriveBtn').innerText = 'Syncing...';
-                initializeDriveFile();
+                if (statusDot) {
+                    statusDot.classList.replace('bg-gray-400', 'bg-green-500');
+                }
+
+                if (window._pullAfterAuth) {
+                    window._pullAfterAuth = false;
+                    pullFromDrive(false);
+                } else {
+                    document.getElementById('connectDriveBtn').innerText = 'Syncing...';
+                    initializeDriveFile();
+                }
             },
         });
         gisInited = true;
+
+        // Restore UI visibility if file was previously linked
+        if (state.config.gdrive.fileId) {
+            document.getElementById('driveStatus').classList.remove('hidden');
+            document.getElementById('pullDriveBtn').classList.remove('hidden');
+            const statusDot = document.querySelector('#driveStatus span:first-child');
+            if (statusDot) {
+                statusDot.classList.replace('bg-green-500', 'bg-gray-400');
+            }
+        }
     }
 
     async function handleAuthClick() {
@@ -517,8 +538,14 @@
     }
 
     async function pullFromDrive(withConfirm = false) {
-        if (!accessToken || !state.config.gdrive.fileId) {
+        if (!state.config.gdrive.fileId) {
             alert("Please connect to Google Drive first.");
+            return;
+        }
+
+        if (!accessToken) {
+            window._pullAfterAuth = true;
+            handleAuthClick();
             return;
         }
 
