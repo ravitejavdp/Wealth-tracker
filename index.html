@@ -19,12 +19,14 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .active-tab { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
 <div class="max-w-6xl mx-auto p-4 md:p-8">
-    <header class="mb-8 flex justify-between items-center">
+    <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 class="text-3xl font-bold text-gray-800">WealthTracker</h1>
         <div class="space-x-2">
             <button onclick="exportData()" class="bg-green-600 text-white px-4 py-2 rounded text-sm">Download data.json</button>
@@ -34,11 +36,11 @@
     </header>
 
     <!-- Navigation -->
-    <nav class="flex space-x-4 border-b mb-6">
-        <button onclick="showTab('entries')" id="tab-entries" class="tab-btn px-4 py-2 font-medium active-tab">Inventory</button>
-        <button onclick="showTab('totals')" id="tab-totals" class="tab-btn px-4 py-2 font-medium text-gray-500">Totals</button>
-        <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-4 py-2 font-medium text-gray-500">Stock Projections</button>
-        <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-4 py-2 font-medium text-gray-500">SIP Planning</button>
+    <nav class="flex space-x-4 border-b mb-6 overflow-x-auto whitespace-nowrap pb-1 no-scrollbar">
+        <button onclick="showTab('entries')" id="tab-entries" class="tab-btn px-4 py-2 font-medium active-tab shrink-0">Inventory</button>
+        <button onclick="showTab('totals')" id="tab-totals" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">Totals</button>
+        <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">Stock Projections</button>
+        <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">SIP Planning</button>
         <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 font-medium text-gray-500">Settings</button>
     </nav>
 
@@ -157,7 +159,7 @@
                         <thead>
                             <tr class="border-b">
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Entry Date</th>
-                                <th class="p-3 text-xs font-bold text-gray-400 uppercase">Value</th>
+                                <th class="p-3 text-xs font-bold text-gray-400 uppercase">Val</th>
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Total Invested</th>
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Tracking P/L</th>
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Return %</th>
@@ -178,7 +180,7 @@
             <!-- India Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">India Portfolio (INR)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
                         <p class="text-[10px] font-black uppercase text-gray-400">India Assets</p>
                         <h3 id="indiaAssetsINR" class="text-xl font-bold">₹0</h3>
@@ -201,7 +203,7 @@
             <!-- USA Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">USA Portfolio (USD)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
                         <p class="text-[10px] font-black uppercase text-gray-400">USA Assets</p>
                         <h3 id="usaAssetsUSD" class="text-xl font-bold">$0</h3>
@@ -254,15 +256,15 @@
                 <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-gray-50 border-b">
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">Month</th>
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">Total Assets</th>
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">Total Liabilities</th>
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">Net Worth (INR)</th>
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">India Diff</th>
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">US Diff</th>
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">Total Change</th>
-                                <th class="p-4 text-xs font-bold text-gray-400 uppercase">Stock Market Diff</th>
+                            <tr class="bg-gray-50 border-b whitespace-nowrap">
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Month</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Assets</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Liabs</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Net (INR)</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">In Diff</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">US Diff</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Total Δ</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Stock Δ</th>
                             </tr>
                         </thead>
                         <tbody id="netWorthHistoryBody"></tbody>
@@ -858,14 +860,17 @@
             const conv = (v) => asset.country === 'USA' ? `<p class="text-[10px] text-indigo-600 font-bold leading-none mt-0.5">≈ ₹${(v * rate).toLocaleString('en-IN', {maximumFractionDigits: 0})}</p>` : '';
 
             const card = `
-                <div class="bg-white p-5 rounded-lg shadow-sm border flex gap-4 items-center hover:shadow-md transition-shadow ${asset.exclude ? 'opacity-50 italic border-dashed' : ''}">
-                    <div class="flex items-center">
-                        <input type="checkbox" class="asset-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-id="${asset.id}" onchange="updateSelectedTotal()">
+                <div class="bg-white p-4 sm:p-5 rounded-lg shadow-sm border flex flex-col sm:flex-row gap-4 items-start sm:items-center hover:shadow-md transition-shadow ${asset.exclude ? 'opacity-50 italic border-dashed' : ''}">
+                    <div class="flex items-center w-full sm:w-auto justify-between sm:justify-start">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" class="asset-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-id="${asset.id}" onchange="updateSelectedTotal()">
+                            <h3 class="sm:hidden text-lg font-bold text-gray-800">${asset.name}</h3>
+                        </div>
                     </div>
                     <div onclick="openAssetDetail(${asset.id})" class="cursor-pointer flex-1">
-                        <h3 class="text-lg font-bold text-gray-800">${asset.name}</h3>
+                        <h3 class="hidden sm:block text-lg font-bold text-gray-800">${asset.name}</h3>
                         <p class="text-xs text-gray-500 uppercase font-semibold">${asset.type} • ${asset.category} • ${asset.country}</p>
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-3">
                             <div>
                                 <p class="text-[10px] text-gray-400 font-bold uppercase">Current Value</p>
                                 <p class="font-mono text-sm font-bold text-gray-700">${symbol}${val.toLocaleString(locale, {maximumFractionDigits: 0})}</p>
@@ -896,10 +901,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-col space-y-3 items-end">
-                        <div class="flex flex-col items-end gap-1">
-                            <span class="text-[10px] uppercase font-black tracking-widest ${asset.exclude ? 'text-gray-400' : 'text-blue-600'}">Included</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
+                    <div class="flex flex-row sm:flex-col space-x-4 sm:space-x-0 sm:space-y-3 items-center sm:items-end w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                        <div class="flex flex-row items-center gap-2">
+                            <span class="text-[10px] uppercase font-black tracking-widest ${asset.exclude ? 'text-gray-400' : 'text-blue-600'}">Sync</span>
+                            <label class="relative inline-flex items-center cursor-pointer shrink-0">
                                 <input type="checkbox" class="sr-only peer" ${!asset.exclude ? 'checked' : ''} onchange="toggleExclude(${asset.id})">
                                 <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
                             </label>
@@ -1025,16 +1030,16 @@
             
             const row = `
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-medium text-gray-500 text-sm">${date}</td>
-                    <td class="p-3 font-mono text-sm">${symbol}${val.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(val)}</td>
-                    <td class="p-3 font-mono text-sm">${symbol}${invested.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(invested)}</td>
-                    <td class="p-3 font-mono text-sm ${pl >= 0 ? 'text-green-600' : 'text-red-500'}">${symbol}${pl.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(pl)}</td>
-                    <td class="p-3 font-mono text-sm text-gray-600">${perc}%</td>
-                    <td class="p-3 font-mono text-sm ${periodicChange >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}">
+                    <td class="px-2 py-3 sm:p-3 font-medium text-gray-500 text-xs sm:text-sm">${date}</td>
+                    <td class="px-2 py-3 sm:p-3 font-mono text-xs sm:text-sm">${symbol}${val.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(val)}</td>
+                    <td class="px-2 py-3 sm:p-3 font-mono text-xs sm:text-sm">${symbol}${invested.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(invested)}</td>
+                    <td class="px-2 py-3 sm:p-3 font-mono text-xs sm:text-sm ${pl >= 0 ? 'text-green-600' : 'text-red-500'}">${symbol}${pl.toLocaleString(locale, {maximumFractionDigits: 0})}${conv(pl)}</td>
+                    <td class="px-2 py-3 sm:p-3 font-mono text-xs sm:text-sm text-gray-600">${perc}%</td>
+                    <td class="px-2 py-3 sm:p-3 font-mono text-xs sm:text-sm ${periodicChange >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}">
                         ${periodicChange >= 0 ? '+' : ''}${symbol}${periodicChange.toLocaleString(locale, {maximumFractionDigits: 0})}
                         ${conv(periodicChange)}
                     </td>
-                    <td class="p-3 text-right">
+                    <td class="px-2 py-3 sm:p-3 text-right">
                         <button onclick="deleteEntry(${entry.id})" class="text-red-400 hover:text-red-600">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
@@ -1227,22 +1232,22 @@
 
             const row = `
                 <tr class="border-b hover:bg-gray-50 transition-colors">
-                    <td class="p-4 font-bold text-gray-700">${displayMonth}</td>
-                    <td class="p-4 font-mono text-sm text-gray-600">₹${snap.assetsINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                    <td class="p-4 font-mono text-sm text-red-400">₹${snap.liabilitiesINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                    <td class="p-4 font-mono font-bold ${snap.totalNetINR >= 0 ? 'text-indigo-600' : 'text-red-600'}">
+                    <td class="p-2 sm:p-4 font-bold text-gray-700 text-xs sm:text-sm">${displayMonth}</td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm text-gray-600">₹${snap.assetsINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm text-red-400">₹${snap.liabilitiesINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm font-bold ${snap.totalNetINR >= 0 ? 'text-indigo-600' : 'text-red-600'}">
                         ₹${snap.totalNetINR.toLocaleString('en-IN', {maximumFractionDigits:0})}
                     </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(inDiff)} font-medium">
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(inDiff)} font-medium">
                         ${prevSnap ? formatDiff(inDiff, '₹') : '-'}
                     </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(usDiff)} font-medium">
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(usDiff)} font-medium">
                         ${prevSnap ? formatDiff(usDiff, '$') : '-'}
                     </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(totalDiff)} font-bold">
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(totalDiff)} font-bold">
                         ${prevSnap ? formatDiff(totalDiff, '₹') : '-'}
                     </td>
-                    <td class="p-4 font-mono text-sm ${getDiffClass(stockDiff)} font-bold">
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(stockDiff)} font-bold">
                         ${prevSnap ? formatDiff(stockDiff, '₹') : '-'}
                     </td>
                 </tr>
