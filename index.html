@@ -457,7 +457,9 @@
     let gapiInited = false;
     let gisInited = false;
     let accessToken = null;
-    let fileHandle = null;
+    // Promise to ensure gapi.client.drive is ready before any API calls
+    let driveClientReadyResolver;
+    const driveClientReadyPromise = new Promise(resolve => driveClientReadyResolver = resolve);
 
     // Navigation - Moved to top to ensure availability for inline onclick handlers
     function showTab(tabId) {
@@ -497,6 +499,7 @@
             state = {
                 ...state,
                 ...loadedData,
+                config: { ...state.config, ...loadedData.config },
                 assets: loadedData.assets || [] 
             };
             // Ensure every asset has an entries array
@@ -518,9 +521,6 @@
         if (accessToken) {
             syncToDrive();
         }
-        if (fileHandle) {
-            saveToFile();
-        }
     }
 
     // Settings
@@ -536,9 +536,24 @@
     // --- Google Drive API Integration ---
 
     function gapiLoaded() {
-        gapi.load('client', async () => {
-            gapiInited = true;
+        gapi.load('client', () => {
+            gapiInited = true; // gapi.client library is loaded
+            // gapi.client.init will be called once we have an API key and Client ID
+            // or when we need to perform a Drive operation.
         });
+    }
+
+    // Function to ensure gapi.client.drive is initialized and ready
+    async function ensureDriveClientInitialized() {
+        if (!gapiInited) await new Promise(resolve => gapi.load('client', resolve)); // Ensure gapi.client is loaded
+        if (!gapi.client.drive) { // Only initialize if not already done
+            await gapi.client.init({
+                apiKey: document.getElementById('gdriveApiKey').value || state.config.gdrive.apiKey,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            driveClientReadyResolver(); // Resolve the promise once gapi.client.drive is ready
+        }
+        return driveClientReadyPromise; // Return the promise for awaiting
     }
 
     function gisLoaded() {
@@ -552,18 +567,24 @@
                 if (resp.error !== undefined) throw (resp);
                 accessToken = resp.access_token;
                 
-                const statusDot = document.querySelector('#driveStatus span:first-child');
-                document.getElementById('driveStatus').classList.remove('hidden');
-                document.getElementById('pullDriveBtn').classList.remove('hidden');
-                if (statusDot) {
-                    statusDot.classList.replace('bg-gray-400', 'bg-green-500');
-                }
+                // Ensure gapi.client is initialized and set the token
+                ensureDriveClientInitialized().then(() => gapi.client.setToken({ access_token: accessToken }));
+
+                // Persist token for refresh handling
+                state.config.gdrive.token = accessToken;
+                // resp.expires_in is in seconds; convert to absolute timestamp
+                state.config.gdrive.tokenExpiry = Date.now() + (resp.expires_in * 1000);
+                localStorage.setItem('wealthTrackerData', JSON.stringify(state));
+
+                updateDriveUI(true);
 
                 if (window._pullAfterAuth) {
                     window._pullAfterAuth = false;
                     pullFromDrive(false);
+                } else if (window._forceUploadAfterAuth) {
+                    window._forceUploadAfterAuth = false;
+                    forceUploadToDrive();
                 } else {
-                    document.getElementById('connectDriveBtn').innerText = 'Syncing...';
                     initializeDriveFile();
                 }
             },
@@ -572,16 +593,56 @@
 
         // Restore UI visibility if file was previously linked
         if (state.config.gdrive.fileId) {
-            document.getElementById('driveStatus').classList.remove('hidden');
-            document.getElementById('pullDriveBtn').classList.remove('hidden');
-            const statusDot = document.querySelector('#driveStatus span:first-child');
-            if (statusDot) {
-                statusDot.classList.replace('bg-green-500', 'bg-gray-400');
-            }
+            updateDriveUI(accessToken !== null);
+        }
+    }
+
+    function updateDriveUI(isActive) {
+        const statusDot = document.querySelector('#driveStatus span:first-child');
+        const statusText = document.querySelector('#driveStatus span:last-child');
+        const connectBtn = document.getElementById('connectDriveBtn');
+        const disconnectBtn = document.getElementById('disconnectDriveBtn');
+        const pullBtn = document.getElementById('pullDriveBtn');
+        const forceUploadBtn = document.getElementById('forceUploadDriveBtn');
+
+        document.getElementById('driveStatus').classList.remove('hidden');
+        if (pullBtn) pullBtn.classList.remove('hidden');
+        if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+        if (forceUploadBtn) forceUploadBtn.classList.remove('hidden');
+
+        if (isActive) {
+            if (statusDot) { statusDot.classList.remove('bg-gray-400'); statusDot.classList.add('bg-green-500'); }
+            if (statusText) statusText.innerText = 'Drive Active';
+            if (connectBtn) connectBtn.innerText = 'Session Active';
+        } else {
+            if (statusDot) { statusDot.classList.remove('bg-green-500'); statusDot.classList.add('bg-gray-400'); }
+            if (statusText) statusText.innerText = 'Session Expired';
+            if (connectBtn) connectBtn.innerText = 'Reconnect Google Drive';
+        }
+    }
+
+    function setSyncStatus(isSyncing) {
+        const indicator = document.getElementById('syncIndicator');
+        if (indicator) isSyncing ? indicator.classList.remove('hidden') : indicator.classList.add('hidden');
+    }
+
+    function disconnectDrive() {
+        if (confirm("Disconnect Google Drive? This will stop syncing but keep your local data.")) {
+            state.config.gdrive.fileId = null;
+            state.config.gdrive.token = null;
+            state.config.gdrive.tokenExpiry = null;
+            accessToken = null;
+            // Direct localStorage save to prevent triggering a recursive sync creation
+            localStorage.setItem('wealthTrackerData', JSON.stringify(state));
+            location.reload();
         }
     }
 
     async function handleAuthClick() {
+        // Capture latest input values to state before authenticating
+        state.config.gdrive.apiKey = document.getElementById('gdriveApiKey').value;
+        state.config.gdrive.clientId = document.getElementById('gdriveClientId').value;
+
         if (!tokenClient) gisLoaded();
         tokenClient.requestAccessToken({prompt: 'consent'});
     }
@@ -593,11 +654,15 @@
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
 
+            // If we restored a token from localStorage, tell GAPI to use it
+            if (accessToken) gapi.client.setToken({ access_token: accessToken });
+
             // Search for existing file
             const response = await gapi.client.drive.files.list({
                 q: "name = 'wealth_data.json' and trashed = false",
                 fields: 'files(id, name)',
             });
+            if (accessToken) document.getElementById('connectDriveBtn').innerText = 'Connected';
 
             const files = response.result.files;
             if (files && files.length > 0) {
@@ -605,11 +670,10 @@
                 console.log("File found on Drive:", state.config.gdrive.fileId);
                 await pullFromDrive(true); // Initial pull with confirmation
             } else {
-                console.log("No file found with name 'wealth_data.json' that this app has permission to see.");
-                // Create new file
-                await syncToDrive(true);
+                console.warn("No file found with name 'wealth_data.json' that this app has permission to see. Use 'Force Upload' to link your data.");
+                state.config.gdrive.fileId = null;
+                document.getElementById('connectDriveBtn').innerText = 'Connected (No File)';
             }
-            document.getElementById('connectDriveBtn').innerText = 'Connected';
         } catch (err) {
             console.error("Error initializing Drive file:", err);
             alert("Failed to fetch data from Drive. Check console for details.");
@@ -657,8 +721,23 @@
         }
     }
 
+    async function forceUploadToDrive() {
+        if (!accessToken) {
+            window._forceUploadAfterAuth = true;
+            handleAuthClick();
+            return;
+        }
+        if (!confirm("This will upload your local data to Google Drive and create a master 'wealth_data.json' file that this app can manage. Continue?")) {
+            return;
+        }
+        await syncToDrive(true);
+        alert("Data uploaded successfully. Your app is now synced with Google Drive.");
+        document.getElementById('connectDriveBtn').innerText = 'Connected';
+    }
+
     async function syncToDrive(isNew = false) {
         const content = JSON.stringify(state);
+        setSyncStatus(true);
         
         try {
             if (isNew || !state.config.gdrive.fileId) {
@@ -671,23 +750,30 @@
                 });
                 state.config.gdrive.fileId = createResponse.result.id;
                 
-                // Step 2: Upload the actual content
-                await gapi.client.drive.files.update({
-                    fileId: state.config.gdrive.fileId,
-                    media: { mimeType: 'application/json', body: content },
+                // Step 2: Upload the actual content using the media upload endpoint
+                await gapi.client.request({
+                    path: '/upload/drive/v3/files/' + state.config.gdrive.fileId,
+                    method: 'PATCH',
+                    params: { uploadType: 'media' },
+                    body: content
                 });
                 
                 // Persist fileId locally without triggering a recursive sync loop
                 localStorage.setItem('wealthTrackerData', JSON.stringify(state));
             } else {
-                // Standard update for existing file
-                await gapi.client.drive.files.update({
-                    fileId: state.config.gdrive.fileId,
-                    media: { mimeType: 'application/json', body: content },
+                // Upload content using the media upload endpoint for existing file
+                await gapi.client.request({
+                    path: '/upload/drive/v3/files/' + state.config.gdrive.fileId,
+                    method: 'PATCH',
+                    params: { uploadType: 'media' },
+                    body: content
                 });
             }
+            console.log("Drive sync successful: Data reflected in cloud.");
         } catch (err) {
             console.error("Drive sync failed", err);
+        } finally {
+            setSyncStatus(false);
         }
     }
 
