@@ -437,6 +437,7 @@
             state = {
                 ...state,
                 ...loadedData,
+                config: { ...state.config, ...loadedData.config },
                 assets: loadedData.assets || [] 
             };
             // Ensure every asset has an entries array
@@ -566,6 +567,10 @@
     }
 
     async function handleAuthClick() {
+        // Capture latest input values to state before authenticating
+        state.config.gdrive.apiKey = document.getElementById('gdriveApiKey').value;
+        state.config.gdrive.clientId = document.getElementById('gdriveClientId').value;
+
         if (!tokenClient) gisLoaded();
         tokenClient.requestAccessToken({prompt: 'consent'});
     }
