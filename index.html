@@ -357,9 +357,19 @@
                     <button id="pullDriveBtn" onclick="pullFromDrive()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
                         Pull Latest from Drive
                     </button>
+                    <button id="pushDriveBtn" onclick="manualPushToDrive()" class="bg-orange-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
+                        Push to Drive
+                    </button>
                     <div id="driveStatus" class="flex items-center gap-2 hidden">
                         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Drive Connected</span>
+                    </div>
+                    <div id="syncIndicator" class="flex items-center gap-2 hidden">
+                        <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Syncing...</span>
                     </div>
                 </div>
             </div>
@@ -479,6 +489,15 @@
                 if (resp.error !== undefined) throw (resp);
                 accessToken = resp.access_token;
                 
+                // Immediately authorize the gapi client so background syncs work right away
+                if (gapiInited) gapi.client.setToken({ access_token: accessToken });
+
+                // Persist token for refresh handling
+                state.config.gdrive.token = accessToken;
+                // resp.expires_in is in seconds; convert to absolute timestamp
+                state.config.gdrive.tokenExpiry = Date.now() + (resp.expires_in * 1000);
+                localStorage.setItem('wealthTrackerData', JSON.stringify(state));
+
                 updateDriveUI(true);
 
                 if (window._pullAfterAuth) {
@@ -487,6 +506,9 @@
                 } else if (window._forceUploadAfterAuth) {
                     window._forceUploadAfterAuth = false;
                     forceUploadToDrive();
+                } else if (window._pushAfterAuth) {
+                    window._pushAfterAuth = false;
+                    manualPushToDrive();
                 } else {
                     initializeDriveFile();
                 }
@@ -496,7 +518,7 @@
 
         // Restore UI visibility if file was previously linked
         if (state.config.gdrive.fileId) {
-            updateDriveUI(false);
+            updateDriveUI(accessToken !== null);
         }
     }
 
@@ -506,10 +528,12 @@
         const connectBtn = document.getElementById('connectDriveBtn');
         const disconnectBtn = document.getElementById('disconnectDriveBtn');
         const pullBtn = document.getElementById('pullDriveBtn');
+        const pushBtn = document.getElementById('pushDriveBtn');
         const forceUploadBtn = document.getElementById('forceUploadDriveBtn');
 
         document.getElementById('driveStatus').classList.remove('hidden');
         if (pullBtn) pullBtn.classList.remove('hidden');
+        if (pushBtn) pushBtn.classList.remove('hidden');
         if (disconnectBtn) disconnectBtn.classList.remove('hidden');
         if (forceUploadBtn) forceUploadBtn.classList.remove('hidden');
 
@@ -524,9 +548,16 @@
         }
     }
 
+    function setSyncStatus(isSyncing) {
+        const indicator = document.getElementById('syncIndicator');
+        if (indicator) isSyncing ? indicator.classList.remove('hidden') : indicator.classList.add('hidden');
+    }
+
     function disconnectDrive() {
         if (confirm("Disconnect Google Drive? This will stop syncing but keep your local data.")) {
             state.config.gdrive.fileId = null;
+            state.config.gdrive.token = null;
+            state.config.gdrive.tokenExpiry = null;
             accessToken = null;
             // Direct localStorage save to prevent triggering a recursive sync creation
             localStorage.setItem('wealthTrackerData', JSON.stringify(state));
@@ -546,12 +577,15 @@
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
 
+            // If we restored a token from localStorage, tell GAPI to use it
+            if (accessToken) gapi.client.setToken({ access_token: accessToken });
+
             // Search for existing file
             const response = await gapi.client.drive.files.list({
                 q: "name = 'wealth_data.json' and trashed = false",
                 fields: 'files(id, name)',
             });
-            document.getElementById('connectDriveBtn').innerText = 'Connected';
+            if (accessToken) document.getElementById('connectDriveBtn').innerText = 'Connected';
 
             const files = response.result.files;
             if (files && files.length > 0) {
@@ -610,6 +644,20 @@
         }
     }
 
+    async function manualPushToDrive() {
+        if (!state.config.gdrive.fileId) {
+            alert("Please connect to Google Drive and link a file first.");
+            return;
+        }
+        if (!accessToken) {
+            window._pushAfterAuth = true;
+            handleAuthClick();
+            return;
+        }
+        await syncToDrive();
+        alert("Data successfully pushed to Google Drive.");
+    }
+
     async function forceUploadToDrive() {
         if (!accessToken) {
             window._forceUploadAfterAuth = true;
@@ -625,7 +673,13 @@
     }
 
     async function syncToDrive(isNew = false) {
+        // Ensure the Drive API is fully initialized before attempting to sync
+        if (!accessToken || !gapi.client.drive) {
+            console.warn("Drive API not ready for sync yet.");
+            return;
+        }
         const content = JSON.stringify(state);
+        setSyncStatus(true);
         
         try {
             if (isNew || !state.config.gdrive.fileId) {
@@ -655,6 +709,8 @@
             }
         } catch (err) {
             console.error("Drive sync failed", err);
+        } finally {
+            setSyncStatus(false);
         }
     }
 
