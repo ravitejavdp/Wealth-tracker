@@ -24,9 +24,12 @@
 <body class="bg-gray-100 font-sans">
 
 <div class="max-w-6xl mx-auto p-4 md:p-8">
-    <header class="mb-8 flex justify-between items-center">
+    <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <h1 class="text-3xl font-bold text-gray-800">WealthTracker</h1>
-        <div class="space-x-2">
+        <div class="flex flex-wrap gap-2 items-center">
+            <button id="reloadFileBtn" onclick="readFileContent()" class="bg-gray-500 text-white px-2 py-2 rounded text-xs hidden" title="Reload from File">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
             <button onclick="exportData()" class="bg-green-600 text-white px-4 py-2 rounded text-sm">Download data.json</button>
             <input type="file" id="importFile" class="hidden" onchange="importData(event)">
             <button onclick="document.getElementById('importFile').click()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Load data.json</button>
@@ -34,12 +37,12 @@
     </header>
 
     <!-- Navigation -->
-    <nav class="flex space-x-4 border-b mb-6">
-        <button onclick="showTab('entries')" id="tab-entries" class="tab-btn px-4 py-2 font-medium active-tab">Inventory</button>
-        <button onclick="showTab('totals')" id="tab-totals" class="tab-btn px-4 py-2 font-medium text-gray-500">Totals</button>
-        <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-4 py-2 font-medium text-gray-500">Stock Projections</button>
-        <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-4 py-2 font-medium text-gray-500">SIP Planning</button>
-        <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 font-medium text-gray-500">Settings</button>
+    <nav class="flex space-x-2 md:space-x-4 border-b mb-6 overflow-x-auto whitespace-nowrap pb-1">
+        <button onclick="showTab('entries')" id="tab-entries" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium active-tab">Inventory</button>
+        <button onclick="showTab('totals')" id="tab-totals" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">Totals</button>
+        <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">Projections</button>
+        <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">SIP Planning</button>
+        <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">Settings</button>
     </nav>
 
     <!-- Entries Tab -->
@@ -47,7 +50,7 @@
         <div id="assetListView">
             <div class="bg-white p-6 rounded-lg shadow-md mb-6">
                 <h2 class="text-xl font-semibold mb-4">Add New Asset</h2>
-                <form id="assetForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <form id="assetForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <input type="text" id="itemName" placeholder="Asset Name (e.g. Robinhood)" class="border p-2 rounded" required>
                     <select id="itemType" class="border p-2 rounded">
                         <option value="asset">Asset</option>
@@ -62,7 +65,7 @@
                         <option value="USA">USA (USD)</option>
                         <option value="India">India (INR)</option>
                     </select>
-                    <button type="submit" class="bg-blue-600 text-white p-2 rounded md:col-span-4 shadow-sm">Create Asset Container</button>
+                    <button type="submit" class="bg-blue-600 text-white p-2 rounded sm:col-span-2 lg:col-span-4 shadow-sm">Create Asset Container</button>
                 </form>
             </div>
 
@@ -125,7 +128,7 @@
                         <h3 class="font-bold text-blue-800 uppercase text-xs">New Monthly Snapshot</h3>
                         <button onclick="cloneLatestEntry()" type="button" class="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Clone Latest</button>
                     </div>
-                    <form id="entryForm" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    <form id="entryForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Entry Date</label>
                             <input type="date" id="entryDate" class="border p-2 w-full rounded mt-1 text-sm" required>
@@ -146,7 +149,7 @@
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Return %</label>
                             <input type="number" id="currentPercent" class="border p-2 w-full rounded mt-1 text-sm" step="0.01" required>
                         </div>
-                        <div class="flex items-end">
+                        <div class="flex items-end sm:col-span-2 lg:col-span-1">
                             <button type="submit" class="bg-blue-600 text-white p-2 rounded w-full font-bold shadow-md">Save Log</button>
                         </div>
                     </form>
@@ -178,7 +181,7 @@
             <!-- India Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">India Portfolio (INR)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
                         <p class="text-[10px] font-black uppercase text-gray-400">India Assets</p>
                         <h3 id="indiaAssetsINR" class="text-xl font-bold">₹0</h3>
@@ -201,7 +204,7 @@
             <!-- USA Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">USA Portfolio (USD)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
                         <p class="text-[10px] font-black uppercase text-gray-400">USA Assets</p>
                         <h3 id="usaAssetsUSD" class="text-xl font-bold">$0</h3>
@@ -236,7 +239,7 @@
             <!-- Grand Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">Grand Total (Consolidated)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div class="bg-gray-800 p-6 rounded-xl shadow text-white">
                         <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Grand Total Assets</p>
                         <h3 id="grandTotalAssetsINR" class="text-2xl font-black">₹0</h3>
@@ -276,7 +279,7 @@
     <div id="projections" class="tab-content">
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">Stock Market Projections</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div>
                     <label class="block text-sm">Target Month & Year</label>
                     <input type="month" id="projTargetDate" class="border p-2 w-full rounded">
@@ -304,7 +307,7 @@
     <div id="planning" class="tab-content">
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">SIP Planning</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div>
                     <label class="block text-sm">Target Amount (INR)</label>
                     <input type="number" id="sipTarget" placeholder="e.g. 10000000" class="border p-2 w-full rounded">
@@ -318,7 +321,7 @@
                     <input type="number" id="sipReturn" value="12" class="border p-2 w-full rounded">
                 </div>
             </div>
-            <button onclick="calculateSIP()" class="bg-pink-600 text-white px-4 py-2 rounded">Calculate Required SIP</button>
+            <button onclick="calculateSIP()" class="bg-pink-600 text-white px-4 py-2 rounded w-full sm:w-auto">Calculate Required SIP</button>
             <div id="sipResult" class="mt-6 p-4 bg-gray-50 rounded"></div>
         </div>
     </div>
@@ -328,7 +331,7 @@
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">Configuration</h2>
             <label class="block text-sm">1 USD to INR Rate</label>
-            <input type="number" id="exchangeRate" value="83.0" step="0.1" class="border p-2 rounded w-full md:w-1/4">
+            <input type="number" id="exchangeRate" value="83.0" step="0.1" class="border p-2 rounded w-full sm:w-1/2 lg:w-1/4">
             <button onclick="saveSettings()" class="block mt-4 bg-gray-800 text-white px-4 py-2 rounded">Update Exchange Rate</button>
 
             <hr class="my-8">
@@ -348,25 +351,12 @@
                     <button id="connectDriveBtn" onclick="handleAuthClick()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">
                         Connect Google Drive
                     </button>
-                    <button id="disconnectDriveBtn" onclick="disconnectDrive()" class="bg-gray-400 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
-                        Disconnect
-                    </button>
-                    <button id="forceUploadDriveBtn" onclick="forceUploadToDrive()" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
-                        Force Upload to Drive
-                    </button>
                     <button id="pullDriveBtn" onclick="pullFromDrive()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
                         Pull Latest from Drive
                     </button>
                     <div id="driveStatus" class="flex items-center gap-2 hidden">
                         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Drive Connected</span>
-                    </div>
-                    <div id="syncIndicator" class="flex items-center gap-2 hidden">
-                        <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Syncing...</span>
                     </div>
                 </div>
             </div>
@@ -395,9 +385,7 @@
     let gapiInited = false;
     let gisInited = false;
     let accessToken = null;
-    // Promise to ensure gapi.client.drive is ready before any API calls
-    let driveClientReadyResolver;
-    const driveClientReadyPromise = new Promise(resolve => driveClientReadyResolver = resolve);
+    let fileHandle = null;
 
     // Navigation - Moved to top to ensure availability for inline onclick handlers
     function showTab(tabId) {
@@ -437,7 +425,6 @@
             state = {
                 ...state,
                 ...loadedData,
-                config: { ...state.config, ...loadedData.config },
                 assets: loadedData.assets || [] 
             };
             // Ensure every asset has an entries array
@@ -459,6 +446,9 @@
         if (accessToken) {
             syncToDrive();
         }
+        if (fileHandle) {
+            saveToFile();
+        }
     }
 
     // Settings
@@ -474,24 +464,9 @@
     // --- Google Drive API Integration ---
 
     function gapiLoaded() {
-        gapi.load('client', () => {
-            gapiInited = true; // gapi.client library is loaded
-            // gapi.client.init will be called once we have an API key and Client ID
-            // or when we need to perform a Drive operation.
+        gapi.load('client', async () => {
+            gapiInited = true;
         });
-    }
-
-    // Function to ensure gapi.client.drive is initialized and ready
-    async function ensureDriveClientInitialized() {
-        if (!gapiInited) await new Promise(resolve => gapi.load('client', resolve)); // Ensure gapi.client is loaded
-        if (!gapi.client.drive) { // Only initialize if not already done
-            await gapi.client.init({
-                apiKey: document.getElementById('gdriveApiKey').value || state.config.gdrive.apiKey,
-                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-            });
-            driveClientReadyResolver(); // Resolve the promise once gapi.client.drive is ready
-        }
-        return driveClientReadyPromise; // Return the promise for awaiting
     }
 
     function gisLoaded() {
@@ -505,24 +480,18 @@
                 if (resp.error !== undefined) throw (resp);
                 accessToken = resp.access_token;
                 
-                // Ensure gapi.client is initialized and set the token
-                ensureDriveClientInitialized().then(() => gapi.client.setToken({ access_token: accessToken }));
-
-                // Persist token for refresh handling
-                state.config.gdrive.token = accessToken;
-                // resp.expires_in is in seconds; convert to absolute timestamp
-                state.config.gdrive.tokenExpiry = Date.now() + (resp.expires_in * 1000);
-                localStorage.setItem('wealthTrackerData', JSON.stringify(state));
-
-                updateDriveUI(true);
+                const statusDot = document.querySelector('#driveStatus span:first-child');
+                document.getElementById('driveStatus').classList.remove('hidden');
+                document.getElementById('pullDriveBtn').classList.remove('hidden');
+                if (statusDot) {
+                    statusDot.classList.replace('bg-gray-400', 'bg-green-500');
+                }
 
                 if (window._pullAfterAuth) {
                     window._pullAfterAuth = false;
                     pullFromDrive(false);
-                } else if (window._forceUploadAfterAuth) {
-                    window._forceUploadAfterAuth = false;
-                    forceUploadToDrive();
                 } else {
+                    document.getElementById('connectDriveBtn').innerText = 'Syncing...';
                     initializeDriveFile();
                 }
             },
@@ -531,56 +500,16 @@
 
         // Restore UI visibility if file was previously linked
         if (state.config.gdrive.fileId) {
-            updateDriveUI(accessToken !== null);
-        }
-    }
-
-    function updateDriveUI(isActive) {
-        const statusDot = document.querySelector('#driveStatus span:first-child');
-        const statusText = document.querySelector('#driveStatus span:last-child');
-        const connectBtn = document.getElementById('connectDriveBtn');
-        const disconnectBtn = document.getElementById('disconnectDriveBtn');
-        const pullBtn = document.getElementById('pullDriveBtn');
-        const forceUploadBtn = document.getElementById('forceUploadDriveBtn');
-
-        document.getElementById('driveStatus').classList.remove('hidden');
-        if (pullBtn) pullBtn.classList.remove('hidden');
-        if (disconnectBtn) disconnectBtn.classList.remove('hidden');
-        if (forceUploadBtn) forceUploadBtn.classList.remove('hidden');
-
-        if (isActive) {
-            if (statusDot) { statusDot.classList.remove('bg-gray-400'); statusDot.classList.add('bg-green-500'); }
-            if (statusText) statusText.innerText = 'Drive Active';
-            if (connectBtn) connectBtn.innerText = 'Session Active';
-        } else {
-            if (statusDot) { statusDot.classList.remove('bg-green-500'); statusDot.classList.add('bg-gray-400'); }
-            if (statusText) statusText.innerText = 'Session Expired';
-            if (connectBtn) connectBtn.innerText = 'Reconnect Google Drive';
-        }
-    }
-
-    function setSyncStatus(isSyncing) {
-        const indicator = document.getElementById('syncIndicator');
-        if (indicator) isSyncing ? indicator.classList.remove('hidden') : indicator.classList.add('hidden');
-    }
-
-    function disconnectDrive() {
-        if (confirm("Disconnect Google Drive? This will stop syncing but keep your local data.")) {
-            state.config.gdrive.fileId = null;
-            state.config.gdrive.token = null;
-            state.config.gdrive.tokenExpiry = null;
-            accessToken = null;
-            // Direct localStorage save to prevent triggering a recursive sync creation
-            localStorage.setItem('wealthTrackerData', JSON.stringify(state));
-            location.reload();
+            document.getElementById('driveStatus').classList.remove('hidden');
+            document.getElementById('pullDriveBtn').classList.remove('hidden');
+            const statusDot = document.querySelector('#driveStatus span:first-child');
+            if (statusDot) {
+                statusDot.classList.replace('bg-green-500', 'bg-gray-400');
+            }
         }
     }
 
     async function handleAuthClick() {
-        // Capture latest input values to state before authenticating
-        state.config.gdrive.apiKey = document.getElementById('gdriveApiKey').value;
-        state.config.gdrive.clientId = document.getElementById('gdriveClientId').value;
-
         if (!tokenClient) gisLoaded();
         tokenClient.requestAccessToken({prompt: 'consent'});
     }
@@ -592,15 +521,11 @@
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
 
-            // If we restored a token from localStorage, tell GAPI to use it
-            if (accessToken) gapi.client.setToken({ access_token: accessToken });
-
             // Search for existing file
             const response = await gapi.client.drive.files.list({
                 q: "name = 'wealth_data.json' and trashed = false",
                 fields: 'files(id, name)',
             });
-            if (accessToken) document.getElementById('connectDriveBtn').innerText = 'Connected';
 
             const files = response.result.files;
             if (files && files.length > 0) {
@@ -608,10 +533,11 @@
                 console.log("File found on Drive:", state.config.gdrive.fileId);
                 await pullFromDrive(true); // Initial pull with confirmation
             } else {
-                console.warn("No file found with name 'wealth_data.json' that this app has permission to see. Use 'Force Upload' to link your data.");
-                state.config.gdrive.fileId = null;
-                document.getElementById('connectDriveBtn').innerText = 'Connected (No File)';
+                console.log("No file found with name 'wealth_data.json' that this app has permission to see.");
+                // Create new file
+                await syncToDrive(true);
             }
+            document.getElementById('connectDriveBtn').innerText = 'Connected';
         } catch (err) {
             console.error("Error initializing Drive file:", err);
             alert("Failed to fetch data from Drive. Check console for details.");
@@ -659,23 +585,8 @@
         }
     }
 
-    async function forceUploadToDrive() {
-        if (!accessToken) {
-            window._forceUploadAfterAuth = true;
-            handleAuthClick();
-            return;
-        }
-        if (!confirm("This will upload your local data to Google Drive and create a master 'wealth_data.json' file that this app can manage. Continue?")) {
-            return;
-        }
-        await syncToDrive(true);
-        alert("Data uploaded successfully. Your app is now synced with Google Drive.");
-        document.getElementById('connectDriveBtn').innerText = 'Connected';
-    }
-
     async function syncToDrive(isNew = false) {
         const content = JSON.stringify(state);
-        setSyncStatus(true);
         
         try {
             if (isNew || !state.config.gdrive.fileId) {
@@ -688,30 +599,23 @@
                 });
                 state.config.gdrive.fileId = createResponse.result.id;
                 
-                // Step 2: Upload the actual content using the media upload endpoint
-                await gapi.client.request({
-                    path: '/upload/drive/v3/files/' + state.config.gdrive.fileId,
-                    method: 'PATCH',
-                    params: { uploadType: 'media' },
-                    body: content
+                // Step 2: Upload the actual content
+                await gapi.client.drive.files.update({
+                    fileId: state.config.gdrive.fileId,
+                    media: { mimeType: 'application/json', body: content },
                 });
                 
                 // Persist fileId locally without triggering a recursive sync loop
                 localStorage.setItem('wealthTrackerData', JSON.stringify(state));
             } else {
-                // Upload content using the media upload endpoint for existing file
-                await gapi.client.request({
-                    path: '/upload/drive/v3/files/' + state.config.gdrive.fileId,
-                    method: 'PATCH',
-                    params: { uploadType: 'media' },
-                    body: content
+                // Standard update for existing file
+                await gapi.client.drive.files.update({
+                    fileId: state.config.gdrive.fileId,
+                    media: { mimeType: 'application/json', body: content },
                 });
             }
-            console.log("Drive sync successful: Data reflected in cloud.");
         } catch (err) {
             console.error("Drive sync failed", err);
-        } finally {
-            setSyncStatus(false);
         }
     }
 
