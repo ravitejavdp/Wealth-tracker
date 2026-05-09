@@ -351,6 +351,9 @@
                     <button id="disconnectDriveBtn" onclick="disconnectDrive()" class="bg-gray-400 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
                         Disconnect
                     </button>
+                    <button id="forceUploadDriveBtn" onclick="forceUploadToDrive()" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
+                        Force Upload to Drive
+                    </button>
                     <button id="pullDriveBtn" onclick="pullFromDrive()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
                         Pull Latest from Drive
                     </button>
@@ -481,6 +484,9 @@
                 if (window._pullAfterAuth) {
                     window._pullAfterAuth = false;
                     pullFromDrive(false);
+                } else if (window._forceUploadAfterAuth) {
+                    window._forceUploadAfterAuth = false;
+                    forceUploadToDrive();
                 } else {
                     initializeDriveFile();
                 }
@@ -500,10 +506,12 @@
         const connectBtn = document.getElementById('connectDriveBtn');
         const disconnectBtn = document.getElementById('disconnectDriveBtn');
         const pullBtn = document.getElementById('pullDriveBtn');
+        const forceUploadBtn = document.getElementById('forceUploadDriveBtn');
 
         document.getElementById('driveStatus').classList.remove('hidden');
         if (pullBtn) pullBtn.classList.remove('hidden');
         if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+        if (forceUploadBtn) forceUploadBtn.classList.remove('hidden');
 
         if (isActive) {
             if (statusDot) { statusDot.classList.remove('bg-gray-400'); statusDot.classList.add('bg-green-500'); }
@@ -551,11 +559,10 @@
                 console.log("File found on Drive:", state.config.gdrive.fileId);
                 await pullFromDrive(true); // Initial pull with confirmation
             } else {
-                console.log("No file found with name 'wealth_data.json' that this app has permission to see.");
-                // Create new file
-                await syncToDrive(true);
+                console.warn("No file found with name 'wealth_data.json' that this app has permission to see. Use 'Force Upload' to link your data.");
+                state.config.gdrive.fileId = null;
+                document.getElementById('connectDriveBtn').innerText = 'Connected (No File)';
             }
-            document.getElementById('connectDriveBtn').innerText = 'Connected';
         } catch (err) {
             console.error("Error initializing Drive file:", err);
             alert("Failed to fetch data from Drive. Check console for details.");
@@ -601,6 +608,20 @@
             console.error("Manual pull failed:", err);
             alert("Failed to pull data from Drive.");
         }
+    }
+
+    async function forceUploadToDrive() {
+        if (!accessToken) {
+            window._forceUploadAfterAuth = true;
+            handleAuthClick();
+            return;
+        }
+        if (!confirm("This will upload your local data to Google Drive and create a master 'wealth_data.json' file that this app can manage. Continue?")) {
+            return;
+        }
+        await syncToDrive(true);
+        alert("Data uploaded successfully. Your app is now synced with Google Drive.");
+        document.getElementById('connectDriveBtn').innerText = 'Connected';
     }
 
     async function syncToDrive(isNew = false) {
