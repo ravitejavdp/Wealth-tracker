@@ -24,12 +24,9 @@
 <body class="bg-gray-100 font-sans">
 
 <div class="max-w-6xl mx-auto p-4 md:p-8">
-    <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+    <header class="mb-8 flex justify-between items-center">
         <h1 class="text-3xl font-bold text-gray-800">WealthTracker</h1>
-        <div class="flex flex-wrap gap-2 items-center">
-            <button id="reloadFileBtn" onclick="readFileContent()" class="bg-gray-500 text-white px-2 py-2 rounded text-xs hidden" title="Reload from File">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-            </button>
+        <div class="space-x-2">
             <button onclick="exportData()" class="bg-green-600 text-white px-4 py-2 rounded text-sm">Download data.json</button>
             <input type="file" id="importFile" class="hidden" onchange="importData(event)">
             <button onclick="document.getElementById('importFile').click()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Load data.json</button>
@@ -37,13 +34,12 @@
     </header>
 
     <!-- Navigation -->
-    <nav class="flex space-x-2 md:space-x-4 border-b mb-6 overflow-x-auto whitespace-nowrap pb-1">
-        <button onclick="showTab('entries')" id="tab-entries" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium active-tab">Inventory</button>
-        <button onclick="showTab('totals')" id="tab-totals" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">Totals</button>
-        <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">Projections</button>
-        <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">SIP Planning</button>
-        <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">Settings</button>
-        <button onclick="showTab('guide')" id="tab-guide" class="tab-btn px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-500">Setup Guide</button>
+    <nav class="flex space-x-4 border-b mb-6">
+        <button onclick="showTab('entries')" id="tab-entries" class="tab-btn px-4 py-2 font-medium active-tab">Inventory</button>
+        <button onclick="showTab('totals')" id="tab-totals" class="tab-btn px-4 py-2 font-medium text-gray-500">Totals</button>
+        <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-4 py-2 font-medium text-gray-500">Stock Projections</button>
+        <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-4 py-2 font-medium text-gray-500">SIP Planning</button>
+        <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 font-medium text-gray-500">Settings</button>
     </nav>
 
     <!-- Entries Tab -->
@@ -51,7 +47,7 @@
         <div id="assetListView">
             <div class="bg-white p-6 rounded-lg shadow-md mb-6">
                 <h2 class="text-xl font-semibold mb-4">Add New Asset</h2>
-                <form id="assetForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <form id="assetForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <input type="text" id="itemName" placeholder="Asset Name (e.g. Robinhood)" class="border p-2 rounded" required>
                     <select id="itemType" class="border p-2 rounded">
                         <option value="asset">Asset</option>
@@ -66,7 +62,7 @@
                         <option value="USA">USA (USD)</option>
                         <option value="India">India (INR)</option>
                     </select>
-                    <button type="submit" class="bg-blue-600 text-white p-2 rounded sm:col-span-2 lg:col-span-4 shadow-sm">Create Asset Container</button>
+                    <button type="submit" class="bg-blue-600 text-white p-2 rounded md:col-span-4 shadow-sm">Create Asset Container</button>
                 </form>
             </div>
 
@@ -129,7 +125,7 @@
                         <h3 class="font-bold text-blue-800 uppercase text-xs">New Monthly Snapshot</h3>
                         <button onclick="cloneLatestEntry()" type="button" class="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Clone Latest</button>
                     </div>
-                    <form id="entryForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                    <form id="entryForm" class="grid grid-cols-1 md:grid-cols-6 gap-4">
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Entry Date</label>
                             <input type="date" id="entryDate" class="border p-2 w-full rounded mt-1 text-sm" required>
@@ -150,7 +146,7 @@
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Return %</label>
                             <input type="number" id="currentPercent" class="border p-2 w-full rounded mt-1 text-sm" step="0.01" required>
                         </div>
-                        <div class="flex items-end sm:col-span-2 lg:col-span-1">
+                        <div class="flex items-end">
                             <button type="submit" class="bg-blue-600 text-white p-2 rounded w-full font-bold shadow-md">Save Log</button>
                         </div>
                     </form>
@@ -182,7 +178,7 @@
             <!-- India Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">India Portfolio (INR)</h3>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
                         <p class="text-[10px] font-black uppercase text-gray-400">India Assets</p>
                         <h3 id="indiaAssetsINR" class="text-xl font-bold">₹0</h3>
@@ -205,7 +201,7 @@
             <!-- USA Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">USA Portfolio (USD)</h3>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
                         <p class="text-[10px] font-black uppercase text-gray-400">USA Assets</p>
                         <h3 id="usaAssetsUSD" class="text-xl font-bold">$0</h3>
@@ -240,7 +236,7 @@
             <!-- Grand Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">Grand Total (Consolidated)</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-gray-800 p-6 rounded-xl shadow text-white">
                         <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Grand Total Assets</p>
                         <h3 id="grandTotalAssetsINR" class="text-2xl font-black">₹0</h3>
@@ -280,7 +276,7 @@
     <div id="projections" class="tab-content">
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">Stock Market Projections</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
                     <label class="block text-sm">Target Month & Year</label>
                     <input type="month" id="projTargetDate" class="border p-2 w-full rounded">
@@ -308,7 +304,7 @@
     <div id="planning" class="tab-content">
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">SIP Planning</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                     <label class="block text-sm">Target Amount (INR)</label>
                     <input type="number" id="sipTarget" placeholder="e.g. 10000000" class="border p-2 w-full rounded">
@@ -322,79 +318,8 @@
                     <input type="number" id="sipReturn" value="12" class="border p-2 w-full rounded">
                 </div>
             </div>
-            <button onclick="calculateSIP()" class="bg-pink-600 text-white px-4 py-2 rounded w-full sm:w-auto">Calculate Required SIP</button>
+            <button onclick="calculateSIP()" class="bg-pink-600 text-white px-4 py-2 rounded">Calculate Required SIP</button>
             <div id="sipResult" class="mt-6 p-4 bg-gray-50 rounded"></div>
-        </div>
-    </div>
-
-    <!-- Guide Tab -->
-    <div id="guide" class="tab-content">
-        <div class="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Google Cloud Setup Guide</h2>
-            
-            <div class="space-y-8 text-gray-700">
-                <section>
-                    <h3 class="text-lg font-bold text-blue-600 mb-2">Step 1: Create a Google Cloud Project</h3>
-                    <ol class="list-decimal ml-6 space-y-1">
-                        <li>Go to the <a href="https://console.cloud.google.com/" target="_blank" class="text-blue-500 underline">Google Cloud Console</a>.</li>
-                        <li>Click on the project dropdown in the top header and select <strong>"New Project"</strong>.</li>
-                        <li>Name it <code class="bg-gray-100 px-1 rounded">WealthTracker</code> and click <strong>Create</strong>.</li>
-                    </ol>
-                </section>
-
-                <section>
-                    <h3 class="text-lg font-bold text-blue-600 mb-2">Step 2: Enable the Google Drive API</h3>
-                    <ol class="list-decimal ml-6 space-y-1">
-                        <li>Ensure your new project is selected in the header.</li>
-                        <li>Go to <strong>APIs & Services > Library</strong>.</li>
-                        <li>Search for <strong>"Google Drive API"</strong>, click it, and then click <strong>Enable</strong>.</li>
-                    </ol>
-                </section>
-
-                <section>
-                    <h3 class="text-lg font-bold text-blue-600 mb-2">Step 3: Configure the OAuth Consent Screen</h3>
-                    <ol class="list-decimal ml-6 space-y-1">
-                        <li>Go to <strong>APIs & Services > OAuth consent screen</strong>.</li>
-                        <li>Choose <strong>"External"</strong> (or "Internal" if you have a Workspace account) and click <strong>Create</strong>.</li>
-                        <li>Fill in the required app info (App name: <code class="bg-gray-100 px-1 rounded">WealthTracker</code>).</li>
-                        <li><strong>Scopes:</strong> Click <strong>Add or Remove Scopes</strong>. Manually add: <br>
-                            <code class="bg-gray-100 px-1 rounded text-xs select-all">https://www.googleapis.com/auth/drive.file</code><br>
-                            Click <strong>Add to Table</strong> and then <strong>Update</strong>.
-                        </li>
-                    </ol>
-                </section>
-
-                <section>
-                    <h3 class="text-lg font-bold text-blue-600 mb-2">Step 4: Create Credentials</h3>
-                    <div class="ml-4 space-y-4 border-l-2 border-gray-100 pl-4">
-                        <div>
-                            <h4 class="font-bold underline mb-1">A. Create API Key</h4>
-                            <ul class="list-disc ml-6 space-y-1 text-sm">
-                                <li>Go to <strong>APIs & Services > Credentials</strong>. Click <strong>+ Create Credentials > API key</strong>.</li>
-                                <li>Click <strong>Edit API Key</strong>. Set <strong>Website restrictions</strong> to your URL (e.g., your GitHub Pages address).</li>
-                                <li>Restrict key to the <strong>Google Drive API</strong>.</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-bold underline mb-1">B. Create OAuth Client ID</h4>
-                            <ul class="list-disc ml-6 space-y-1 text-sm">
-                                <li>Click <strong>+ Create Credentials > OAuth client ID</strong>.</li>
-                                <li>Select <strong>Application type: Web application</strong>.</li>
-                                <li>Add your base URL to <strong>Authorized JavaScript origins</strong>.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
-                <section>
-                    <h3 class="text-lg font-bold text-blue-600 mb-2">Step 5: Connect the App</h3>
-                    <p>Go to the <strong>Settings</strong> tab in this app, paste your <strong>API Key</strong> and <strong>Client ID</strong>, then click <strong>Connect Google Drive</strong>.</p>
-                </section>
-
-                <div class="mt-8 pt-4 border-t text-[10px] italic text-gray-500">
-                    *Your credentials are saved in your browser's local storage and are never sent to any third-party server besides Google.
-                </div>
-            </div>
         </div>
     </div>
 
@@ -403,7 +328,7 @@
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">Configuration</h2>
             <label class="block text-sm">1 USD to INR Rate</label>
-            <input type="number" id="exchangeRate" value="83.0" step="0.1" class="border p-2 rounded w-full sm:w-1/2 lg:w-1/4">
+            <input type="number" id="exchangeRate" value="83.0" step="0.1" class="border p-2 rounded w-full md:w-1/4">
             <button onclick="saveSettings()" class="block mt-4 bg-gray-800 text-white px-4 py-2 rounded">Update Exchange Rate</button>
 
             <hr class="my-8">
@@ -423,12 +348,25 @@
                     <button id="connectDriveBtn" onclick="handleAuthClick()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">
                         Connect Google Drive
                     </button>
+                    <button id="disconnectDriveBtn" onclick="disconnectDrive()" class="bg-gray-400 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
+                        Disconnect
+                    </button>
+                    <button id="forceUploadDriveBtn" onclick="forceUploadToDrive()" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
+                        Force Upload to Drive
+                    </button>
                     <button id="pullDriveBtn" onclick="pullFromDrive()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hidden">
                         Pull Latest from Drive
                     </button>
                     <div id="driveStatus" class="flex items-center gap-2 hidden">
                         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Drive Connected</span>
+                    </div>
+                    <div id="syncIndicator" class="flex items-center gap-2 hidden">
+                        <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Syncing...</span>
                     </div>
                 </div>
             </div>
