@@ -1,0 +1,16 @@
+{
+  "name": "WealthTracker Personal Finance",
+  "short_name": "WealthTracker",
+  "start_url": "app.html",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2845/2845893.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
