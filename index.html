@@ -284,6 +284,10 @@
                     <input type="month" id="projTargetDate" class="border p-2 w-full rounded">
                 </div>
                 <div>
+                    <label class="block text-sm">Target Amount (INR)</label>
+                    <input type="number" id="projTargetAmount" placeholder="e.g. 50000000" class="border p-2 w-full rounded">
+                </div>
+                <div>
                     <label class="block text-sm">Expected Annual Return (%)</label>
                     <input type="number" id="projReturn" value="12" class="border p-2 w-full rounded">
                 </div>
@@ -296,7 +300,10 @@
                     <input type="number" id="projUsaSIP" value="0" class="border p-2 w-full rounded">
                 </div>
             </div>
-            <button onclick="calculateProjections()" class="bg-indigo-600 text-white px-4 py-2 rounded">Calculate</button>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="calculateProjections()" class="bg-indigo-600 text-white px-4 py-2 rounded">Calculate Growth</button>
+                <button onclick="calculateTimeToTarget()" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Time to Target</button>
+            </div>
             <div id="projectionResult" class="mt-6 text-xl"></div>
             <canvas id="projectionChart" class="mt-8"></canvas>
         </div>
@@ -1459,6 +1466,70 @@
                 }
             }
         });
+    }
+
+    function calculateTimeToTarget() {
+        const targetAmount = parseFloat(document.getElementById('projTargetAmount').value);
+        if (!targetAmount || isNaN(targetAmount)) return alert("Please enter a target amount (INR)");
+
+        const returns = parseFloat(document.getElementById('projReturn').value) / 100;
+        const indiaSIP = parseFloat(document.getElementById('projIndiaSIP').value) || 0;
+        const usaSIP = parseFloat(document.getElementById('projUsaSIP').value) || 0;
+        const rate = state.config.exchangeRate;
+        const monthlyTotalSIP = indiaSIP + (usaSIP * rate);
+        const monthlyRate = returns / 12;
+
+        let indiaStockValue = 0;
+        let usaStockValue = 0;
+        state.assets.filter(a => a.category === 'stock' && a.type === 'asset' && !a.exclude).forEach(asset => {
+            const latest = asset.entries[asset.entries.length - 1] || {};
+            const val = latest.value ?? 0;
+            if (asset.country === 'India') indiaStockValue += val;
+            else usaStockValue += val;
+        });
+        const currentTotalINR = indiaStockValue + (usaStockValue * rate);
+
+        if (currentTotalINR >= targetAmount) {
+            document.getElementById('projectionResult').innerHTML = `<div class='text-green-600 font-bold'>✨ You have already reached your target!</div>`;
+            return;
+        }
+
+        let months = 0;
+        if (monthlyRate === 0) {
+            if (monthlyTotalSIP === 0) {
+                document.getElementById('projectionResult').innerHTML = `<div class='text-red-600'>With 0% return and 0 SIP, you will never reach the target.</div>`;
+                return;
+            }
+            months = (targetAmount - currentTotalINR) / monthlyTotalSIP;
+        } else {
+            // Formula to solve for n (months): n = log((FV + PMT/i) / (PV + PMT/i)) / log(1 + i)
+            const numerator = Math.log((targetAmount + monthlyTotalSIP / monthlyRate) / (currentTotalINR + monthlyTotalSIP / monthlyRate));
+            const denominator = Math.log(1 + monthlyRate);
+            months = numerator / denominator;
+        }
+
+        if (months === Infinity || isNaN(months) || months < 0) {
+            document.getElementById('projectionResult').innerHTML = `<div class='text-red-600 text-sm'>Target cannot be reached with current settings. Check if returns or SIP are too low.</div>`;
+            return;
+        }
+
+        const targetDate = new Date();
+        targetDate.setMonth(targetDate.getMonth() + Math.ceil(months));
+        
+        const years = Math.floor(months / 12);
+        const remainingMonths = Math.ceil(months % 12);
+
+        document.getElementById('projectionResult').innerHTML = `
+            <div class="p-6 bg-blue-50 border border-blue-200 rounded-xl">
+                <p class="text-sm text-blue-400 uppercase font-black tracking-widest mb-1">Estimated Arrival</p>
+                <h3 class="text-3xl font-black text-blue-900">${targetDate.toLocaleDateString(undefined, {month: 'long', year: 'numeric'})}</h3>
+                <p class="text-gray-600 mt-2 text-sm">Approximately <b>${years} years and ${remainingMonths} months</b> away.</p>
+                <div class="mt-4 pt-4 border-t border-blue-100 flex justify-between text-[10px] font-bold uppercase tracking-tighter text-gray-400">
+                    <span>Base: ₹${currentTotalINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+                    <span>Target: ₹${targetAmount.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+                </div>
+            </div>
+        `;
     }
 
     function calculateSIP() {
