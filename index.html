@@ -226,11 +226,16 @@
             <!-- Stock Market Grand Totals -->
             <div>
                 <h3 class="text-lg font-bold mb-3 text-gray-700">Stock Market Value (Consolidated)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-blue-900 p-6 rounded-xl shadow text-white">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-1">Total Stock Market Value</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-1">Current Market Value</p>
                         <h3 id="grandTotalStocksINR" class="text-2xl font-black">₹0</h3>
                         <p id="grandTotalStocksUSD" class="text-xs font-bold text-blue-200 mt-1"></p>
+                    </div>
+                    <div class="bg-indigo-900 p-6 rounded-xl shadow text-white">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-1">Total Invested Amount</p>
+                        <h3 id="grandTotalStocksInvINR" class="text-2xl font-black">₹0</h3>
+                        <p id="grandTotalStocksInvUSD" class="text-xs font-bold text-indigo-200 mt-1"></p>
                     </div>
                 </div>
             </div>
@@ -253,7 +258,7 @@
                 <div class="bg-white p-4 rounded-xl shadow-sm border mb-6">
                     <canvas id="netWorthHistoryChart" style="max-height: 300px;"></canvas>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div class="flex space-x-4 border-b mb-6 overflow-x-auto whitespace-nowrap pb-1 no-scrollbar">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-50 border-b whitespace-nowrap">
@@ -265,6 +270,7 @@
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">US Diff</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Total Δ</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Stock Δ</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Ex-Stock Δ</th>
                             </tr>
                         </thead>
                         <tbody id="netWorthHistoryBody"></tbody>
@@ -1069,15 +1075,23 @@
         let usaMonthlyDiff = 0;
         let indiaStockValue = 0;
         let usaStockValue = 0;
+        let indiaStockInvested = 0;
+        let usaStockInvested = 0;
 
         state.assets.filter(a => !a.exclude).forEach(asset => {
             const latest = asset.entries[asset.entries.length - 1] || {};
             const val = latest.value ?? 0;
+            const invested = latest.invested ?? (val - (latest.pl ?? 0));
             const periodicChange = latest.periodicChange ?? 0;
 
             if (asset.category === 'stock' && asset.type === 'asset') {
-                if (asset.country === 'India') indiaStockValue += val;
-                else usaStockValue += val;
+                if (asset.country === 'India') {
+                    indiaStockValue += val;
+                    indiaStockInvested += invested;
+                } else {
+                    usaStockValue += val;
+                    usaStockInvested += invested;
+                }
             }
             
             if (asset.country === 'India') {
@@ -1107,6 +1121,9 @@
 
         const grandTotalStocksINR = indiaStockValue + (usaStockValue * rate);
         const grandTotalStocksUSD = (indiaStockValue / rate) + usaStockValue;
+
+        const grandTotalStocksInvINR = indiaStockInvested + (usaStockInvested * rate);
+        const grandTotalStocksInvUSD = (indiaStockInvested / rate) + usaStockInvested;
         
         const globalNetWorthUSD = (indiaNet / rate) + usaNet;
         const globalNetWorthINR = indiaNet + (usaNet * rate);
@@ -1147,6 +1164,9 @@
         // Update Stock Market Grand Total DOM
         if (document.getElementById('grandTotalStocksINR')) document.getElementById('grandTotalStocksINR').innerText = `₹${grandTotalStocksINR.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
         if (document.getElementById('grandTotalStocksUSD')) document.getElementById('grandTotalStocksUSD').innerText = `≈ $${grandTotalStocksUSD.toLocaleString('en-US', {maximumFractionDigits:2})}`;
+
+        if (document.getElementById('grandTotalStocksInvINR')) document.getElementById('grandTotalStocksInvINR').innerText = `₹${grandTotalStocksInvINR.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
+        if (document.getElementById('grandTotalStocksInvUSD')) document.getElementById('grandTotalStocksInvUSD').innerText = `≈ $${grandTotalStocksInvUSD.toLocaleString('en-US', {maximumFractionDigits:2})}`;
 
         // This will now also trigger renderNetWorthHistory, which is used by the chart
         const snapshots = renderNetWorthHistory();
@@ -1208,6 +1228,7 @@
                 liabilitiesINR: inLiabilities + (usLiabilities * rate),
                 totalNetINR: (inAssets - inLiabilities) + ((usAssets - usLiabilities) * rate),
                 stockNetINR: inStocks + (usStocks * rate),
+                nonStockNetINR: (inAssets - inLiabilities) + ((usAssets - usLiabilities) * rate) - (inStocks + (usStocks * rate)),
                 totalInvestedINR: inInv + (usInv * rate)
             };
         });
@@ -1220,6 +1241,7 @@
             const usDiff = prevSnap ? snap.usNet - prevSnap.usNet : 0;
             const totalDiff = prevSnap ? snap.totalNetINR - prevSnap.totalNetINR : 0;
             const stockDiff = prevSnap ? snap.stockNetINR - prevSnap.stockNetINR : 0;
+            const nonStockDiff = prevSnap ? snap.nonStockNetINR - prevSnap.nonStockNetINR : 0;
 
             const displayMonth = new Date(snap.monthKey + "-02").toLocaleDateString(undefined, { 
                 month: 'short', 
@@ -1256,6 +1278,9 @@
                     </td>
                     <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(stockDiff)} font-bold">
                         ${prevSnap ? formatDiff(stockDiff, '₹') : '-'}
+                    </td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(nonStockDiff)} font-bold">
+                        ${prevSnap ? formatDiff(nonStockDiff, '₹') : '-'}
                     </td>
                 </tr>
             `;
