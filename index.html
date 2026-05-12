@@ -41,6 +41,7 @@
         <button onclick="showTab('totals')" id="tab-totals" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">Totals</button>
         <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">Stock Projections</button>
         <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">SIP Planning</button>
+        <button onclick="showTab('fire')" id="tab-fire" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">FIRE Planning</button>
         <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 font-medium text-gray-500">Settings</button>
     </nav>
 
@@ -338,6 +339,51 @@
         </div>
     </div>
 
+    <!-- FIRE Planning Tab -->
+    <div id="fire" class="tab-content">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Financial Independence (FIRE) Calculator</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm" title="Your current total invested value in the stock market (India + USA).">Current Stock Market Value (INR) ⓘ</label>
+                    <input type="number" id="fireCurrentCorpus" class="border p-2 w-full rounded" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm" title="Your current total annual living expenses in INR.">Annual Expenses (INR) ⓘ</label>
+                    <input type="number" id="fireAnnualExpenses" placeholder="e.g. 1200000" class="border p-2 w-full rounded" value="1200000">
+                </div>
+                <div>
+                    <label class="block text-sm" title="Expected annual increase in the cost of living.">Inflation Rate (%) ⓘ</label>
+                    <input type="number" id="fireInflationRate" value="6" step="0.1" class="border p-2 w-full rounded">
+                </div>
+                <div>
+                    <label class="block text-sm" title="Expected annual growth rate for your entire portfolio (Current Value + SIPs) until you retire.">Pre-Retirement Annual Return (%) ⓘ</label>
+                    <input type="number" id="firePreRetirementReturn" value="12" step="0.1" class="border p-2 w-full rounded">
+                </div>
+                <div>
+                    <label class="block text-sm" title="The percentage of your corpus you plan to withdraw annually in retirement (e.g., 4% rule).">Safe Withdrawal Rate (%) ⓘ</label>
+                    <input type="number" id="fireWithdrawalRate" value="4" step="0.1" class="border p-2 w-full rounded">
+                </div>
+                <div>
+                    <label class="block text-sm">Monthly SIP - India (INR)</label>
+                    <input type="number" id="fireMonthlySIP" value="0" class="border p-2 w-full rounded">
+                </div>
+                <div>
+                    <label class="block text-sm">Monthly SIP - USA (USD)</label>
+                    <input type="number" id="fireUsaSIP" value="0" class="border p-2 w-full rounded">
+                </div>
+            </div>
+            <button onclick="calculateFIRE()" class="bg-purple-600 text-white px-4 py-2 rounded">Calculate FIRE</button>
+            <div id="fireResult" class="mt-6 p-4 bg-gray-50 rounded"></div>
+        </div>
+    </div>
+
+
+
+
+
+
+
     <!-- Settings Tab -->
     <div id="settings" class="tab-content">
         <div class="bg-white p-6 rounded-lg shadow-md">
@@ -430,6 +476,7 @@
         
         if (tabId !== 'entries') closeAssetDetail();
         if (tabId === 'totals') calculateTotals();
+        if (tabId === 'fire') updateFireInputs();
     }
 
     // Initialize
@@ -1594,6 +1641,136 @@
                 <p class="text-3xl font-black text-gray-800">₹${sipRequired.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
             </div>
         `;
+    }
+
+    function updateFireInputs() {
+        const rate = state.config.exchangeRate;
+        let indiaStockValue = 0;
+        let usaStockValue = 0;
+
+        state.assets.filter(a => a.category === 'stock' && a.type === 'asset' && !a.exclude).forEach(asset => {
+            const latest = asset.entries[asset.entries.length - 1] || {};
+            const val = latest.value ?? 0;
+            if (asset.country === 'India') indiaStockValue += val;
+            else usaStockValue += val;
+        });
+        const currentTotalINR = indiaStockValue + (usaStockValue * rate);
+        document.getElementById('fireCurrentCorpus').value = currentTotalINR.toFixed(0); // Display as integer
+    }
+
+    function calculateFIRE() {
+        const currentCorpus = parseFloat(document.getElementById('fireCurrentCorpus').value);
+        const annualExpenses = parseFloat(document.getElementById('fireAnnualExpenses').value);
+        const inflationRate = parseFloat(document.getElementById('fireInflationRate').value) / 100;
+        const preRetirementReturn = parseFloat(document.getElementById('firePreRetirementReturn').value) / 100;
+        const withdrawalRate = parseFloat(document.getElementById('fireWithdrawalRate').value) / 100;
+        const indiaSIP = parseFloat(document.getElementById('fireMonthlySIP').value) || 0;
+        const usaSIP = parseFloat(document.getElementById('fireUsaSIP').value) || 0;
+        const rate = state.config.exchangeRate;
+
+        if (isNaN(currentCorpus) || isNaN(annualExpenses) || isNaN(inflationRate) || isNaN(preRetirementReturn) || isNaN(withdrawalRate)) {
+            alert("Please fill in all FIRE calculation fields with valid numbers.");
+            return;
+        }
+        if (withdrawalRate <= 0) {
+            alert("Withdrawal rate must be greater than 0.");
+            return;
+        }
+
+        const totalMonthlySIP = indiaSIP + (usaSIP * rate);
+
+        const targetCorpusBasedOnCurrentExpenses = annualExpenses / withdrawalRate;
+        const monthlyPreRetirementReturnRate = (1 + preRetirementReturn)**(1/12) - 1;
+        const monthlyInflationRate = (1 + inflationRate)**(1/12) - 1;
+
+        let currentPortfolio = currentCorpus;
+        let months = 0;
+        let years = 0;
+
+        const maxMonths = 600; // Cap at 50 years to prevent infinite loops
+
+        while (months < maxMonths) {
+            months++;
+            years = months / 12;
+
+            // Apply SIP
+            currentPortfolio += totalMonthlySIP;
+
+            // Apply pre-retirement growth
+            currentPortfolio *= (1 + monthlyPreRetirementReturnRate);
+
+            // Calculate the inflated annual expenses for the current year
+            const inflatedAnnualExpenses = annualExpenses * (1 + inflationRate)**years;
+            const inflatedTargetCorpus = inflatedAnnualExpenses / withdrawalRate;
+
+            if (currentPortfolio >= inflatedTargetCorpus) {
+                break; // Reached FIRE
+            }
+        }
+
+        const fireResultDiv = document.getElementById('fireResult');
+        if (months >= maxMonths) {
+            // Suggestion Logic: Calculate required additional SIP to reach goal in 20 and 30 years
+            const todayMonthlyWithdrawal = (currentCorpus * withdrawalRate) / 12;
+
+            const getAdditionalSIP = (targetYears) => {
+                const n = targetYears * 12;
+                const targetAtN = (annualExpenses * (1 + inflationRate)**targetYears) / withdrawalRate;
+                const fvCurrent = currentCorpus * (1 + monthlyPreRetirementReturnRate)**n;
+                const gap = targetAtN - fvCurrent;
+                if (gap <= 0) return 0;
+                
+                const denominator = monthlyPreRetirementReturnRate === 0 ? n : (((1 + monthlyPreRetirementReturnRate)**n - 1) / monthlyPreRetirementReturnRate) * (1 + monthlyPreRetirementReturnRate);
+                const requiredTotal = gap / denominator;
+                return Math.max(0, requiredTotal - totalMonthlySIP);
+            };
+
+            const extra20 = getAdditionalSIP(20);
+            const extra30 = getAdditionalSIP(30);
+
+            fireResultDiv.innerHTML = `
+                <div class="p-6 bg-red-50 border border-red-200 rounded-xl">
+                    <p class="text-sm text-red-400 uppercase font-black tracking-widest mb-1">Calculation Limit Reached</p>
+                    <p class="text-lg font-bold text-red-800">Could not reach FIRE within 50 years.</p>
+                    <p class="text-xs text-red-600 mt-1 italic font-medium">Currently you can safely withdraw ₹${todayMonthlyWithdrawal.toLocaleString('en-IN', {maximumFractionDigits:0})}/mo.</p>
+                    <div class="mt-4 space-y-3">
+                        <p class="text-gray-600 text-xs font-bold uppercase">To reach FIRE sooner, consider these <b>additional</b> monthly investments:</p>
+                        <div class="bg-white p-3 rounded border border-red-100 shadow-sm">
+                            <p class="text-[10px] text-gray-400 uppercase font-black">In 20 Years</p>
+                            <p class="text-lg font-black text-red-600">+₹${extra20.toLocaleString('en-IN', {maximumFractionDigits:0})} /mo</p>
+                        </div>
+                        <div class="bg-white p-3 rounded border border-red-100 shadow-sm">
+                            <p class="text-[10px] text-gray-400 uppercase font-black">In 30 Years</p>
+                            <p class="text-lg font-black text-orange-600">+₹${extra30.toLocaleString('en-IN', {maximumFractionDigits:0})} /mo</p>
+                        </div>
+                        <p class="text-[10px] text-gray-400 italic">Recommendation factors in inflation for target expenses.</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            const fireDate = new Date();
+            fireDate.setMonth(fireDate.getMonth() + months);
+
+            const yearsToFire = Math.floor(months / 12);
+            const remainingMonthsToFire = months % 12;
+
+            const finalInflatedAnnualExpenses = annualExpenses * Math.pow(1 + inflationRate, months / 12);
+            const monthlyWithdrawal = finalInflatedAnnualExpenses / 12;
+
+            fireResultDiv.innerHTML = `
+                <div class="p-6 bg-green-50 border border-green-200 rounded-xl">
+                    <p class="text-sm text-green-400 uppercase font-black tracking-widest mb-1">Estimated FIRE Date</p>
+                    <h3 class="text-3xl font-black text-green-800">${fireDate.toLocaleDateString(undefined, {month: 'long', year: 'numeric'})}</h3>
+                    <p class="text-gray-600 mt-2 text-sm">Approximately <b>${yearsToFire} years and ${remainingMonthsToFire} months</b> away.</p>
+                    <p class="text-sm text-gray-700 mt-3 font-semibold">Planned Monthly Withdrawal: <b class="text-green-700">₹${monthlyWithdrawal.toLocaleString('en-IN', {maximumFractionDigits:0})}</b> <span class="text-[10px] text-gray-400 uppercase font-bold tracking-tight ml-1">(Adjusted for inflation)</span></p>
+                    <div class="mt-4 pt-4 border-t border-green-100 flex justify-between text-[10px] font-bold uppercase tracking-tighter text-gray-400">
+                        <span>Current Corpus: ₹${currentCorpus.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+                        <span>Target Corpus (Current Expenses): ₹${targetCorpusBasedOnCurrentExpenses.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Note: The calculation considers inflation for future expenses, so the actual target corpus will be higher at the time of FIRE.</p>
+                </div>
+            `;
+        }
     }
 
     // Data Export/Import
