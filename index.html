@@ -267,6 +267,10 @@
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Assets</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Liabs</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Net (INR)</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">In Net</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">US Net</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Stock</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Non-Stock</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">In Diff</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">US Diff</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Total Δ</th>
@@ -1314,6 +1318,13 @@
                     <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm font-bold ${snap.totalNetINR >= 0 ? 'text-indigo-600' : 'text-red-600'}">
                         ₹${snap.totalNetINR.toLocaleString('en-IN', {maximumFractionDigits:0})}
                     </td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm text-gray-600">₹${snap.inNet.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm text-gray-600">
+                        $${snap.usNet.toLocaleString('en-US', {maximumFractionDigits:0})}
+                        <br><span class="text-[10px] text-indigo-500 font-bold">≈ ₹${(snap.usNet * rate).toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>
+                    </td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm text-gray-600">₹${snap.stockNetINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm text-gray-600">₹${snap.nonStockNetINR.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
                     <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(inDiff)} font-medium">
                         ${prevSnap ? formatDiff(inDiff, '₹') : '-'}
                     </td>
