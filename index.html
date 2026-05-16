@@ -23,7 +23,13 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 font-sans relative">
+
+<!-- Preview Mode Banner -->
+<div id="previewBanner" class="hidden bg-purple-700 text-white p-2 text-center text-xs font-bold uppercase tracking-widest sticky top-0 z-50 shadow-md">
+    ✨ Running in Preview Mode: Changes will not be saved. 
+    <button onclick="exitDemoMode()" class="ml-4 px-2 py-1 bg-purple-500 rounded hover:bg-purple-400 transition-colors">Exit & Restore My Data</button>
+</div>
 
 <div class="max-w-6xl mx-auto p-4 md:p-8">
     <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -31,6 +37,8 @@
         <div class="space-x-2">
             <button onclick="exportData()" class="bg-green-600 text-white px-4 py-2 rounded text-sm">Download data.json</button>
             <input type="file" id="importFile" class="hidden" onchange="importData(event)">
+            <button id="demoBtn" onclick="loadDemoData()" class="bg-purple-600 text-white px-4 py-2 rounded text-sm" title="See how the app looks with sample data without affecting your records.">Preview Demo</button>
+            <button id="clearDemoBtn" onclick="clearDemoData()" class="bg-orange-600 text-white px-4 py-2 rounded text-sm hidden">Remove Demo Assets</button>
             <button onclick="document.getElementById('importFile').click()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Load data.json</button>
         </div>
     </header>
@@ -42,6 +50,7 @@
         <button onclick="showTab('projections')" id="tab-projections" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">Stock Projections</button>
         <button onclick="showTab('planning')" id="tab-planning" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">SIP Planning</button>
         <button onclick="showTab('fire')" id="tab-fire" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">FIRE Planning</button>
+        <button onclick="showTab('guide')" id="tab-guide" class="tab-btn px-4 py-2 font-medium text-gray-500 shrink-0">Setup Guide</button>
         <button onclick="showTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 font-medium text-gray-500">Settings</button>
     </nav>
 
@@ -51,20 +60,28 @@
             <div class="bg-white p-6 rounded-lg shadow-md mb-6">
                 <h2 class="text-xl font-semibold mb-4">Add New Asset</h2>
                 <form id="assetForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" id="itemName" placeholder="Asset Name (e.g. Robinhood)" class="border p-2 rounded" required>
-                    <select id="itemType" class="border p-2 rounded">
-                        <option value="asset">Asset</option>
-                        <option value="liability">Liability</option>
-                    </select>
-                    <select id="itemCategory" class="border p-2 rounded">
-                        <option value="regular">Regular</option>
-                        <option value="stock">Stock Market</option>
-                        <option value="other">Other</option>
-                    </select>
-                    <select id="country" class="border p-2 rounded">
-                        <option value="USA">USA (USD)</option>
-                        <option value="India">India (INR)</option>
-                    </select>
+                    <div title="Unique name for this account or asset.">
+                        <input type="text" id="itemName" placeholder="Asset Name (e.g. Robinhood)" class="border p-2 w-full rounded" required>
+                    </div>
+                    <div title="Assets increase your net worth. Liabilities (like loans) decrease it.">
+                        <select id="itemType" class="border p-2 w-full rounded">
+                            <option value="asset">Asset</option>
+                            <option value="liability">Liability</option>
+                        </select>
+                    </div>
+                    <div title="Categorize for accurate projections. 'Stock Market' is used in FIRE/Projections.">
+                        <select id="itemCategory" class="border p-2 w-full rounded">
+                            <option value="regular">Regular</option>
+                            <option value="stock">Stock Market</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div title="The currency for this asset. USD is automatically converted using the exchange rate.">
+                        <select id="country" class="border p-2 w-full rounded">
+                            <option value="USA">USA (USD)</option>
+                            <option value="India">India (INR)</option>
+                        </select>
+                    </div>
                     <button type="submit" class="bg-blue-600 text-white p-2 rounded md:col-span-4 shadow-sm">Create Asset Container</button>
                 </form>
             </div>
@@ -129,23 +146,23 @@
                         <button onclick="cloneLatestEntry()" type="button" class="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Clone Latest</button>
                     </div>
                     <form id="entryForm" class="grid grid-cols-1 md:grid-cols-6 gap-4">
-                        <div>
+                        <div title="The date for this balance snapshot. Use month-end for consistent tracking.">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Entry Date</label>
                             <input type="date" id="entryDate" class="border p-2 w-full rounded mt-1 text-sm" required>
                         </div>
-                        <div>
+                        <div title="The current market value or balance of the asset.">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Current Total Value</label>
                             <input type="number" id="currentValue" class="border p-2 w-full rounded mt-1" step="0.01" required>
                         </div>
-                        <div>
+                        <div title="The total amount of money you have put into this asset.">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Total Invested</label>
                             <input type="number" id="totalInvested" class="border p-2 w-full rounded mt-1 text-sm" step="0.01" required>
                         </div>
-                        <div>
+                        <div title="Current profit or loss. Auto-calculated: Value - Invested.">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Current P/L</label>
                             <input type="number" id="currentPL" class="border p-2 w-full rounded mt-1 text-sm" step="0.01" required>
                         </div>
-                        <div>
+                        <div title="Percentage return on investment. Auto-calculated.">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Return %</label>
                             <input type="number" id="currentPercent" class="border p-2 w-full rounded mt-1 text-sm" step="0.01" required>
                         </div>
@@ -163,7 +180,7 @@
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Val</th>
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Total Invested</th>
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Tracking P/L</th>
-                                <th class="p-3 text-xs font-bold text-gray-400 uppercase">Return %</th>
+                                <th class="p-3 text-xs font-bold text-gray-400 uppercase" title="Total Gain/Loss % since inception.">Return %</th>
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase">Periodic Change</th>
                                 <th class="p-3 text-xs font-bold text-gray-400 uppercase text-right">Action</th>
                             </tr>
@@ -290,11 +307,11 @@
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">Stock Market Projections</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div>
+                <div title="The point in time you want to estimate your portfolio value for.">
                     <label class="block text-sm">Target Month & Year</label>
                     <input type="month" id="projTargetDate" class="border p-2 w-full rounded">
                 </div>
-                <div>
+                <div title="A specific goal amount in INR to calculate time-to-target.">
                     <label class="block text-sm">Target Amount (INR)</label>
                     <input type="number" id="projTargetAmount" placeholder="e.g. 50000000" class="border p-2 w-full rounded">
                 </div>
@@ -325,15 +342,15 @@
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">SIP Planning</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
+                <div title="How much money do you want to have in total?">
                     <label class="block text-sm">Target Amount (INR)</label>
                     <input type="number" id="sipTarget" placeholder="e.g. 10000000" class="border p-2 w-full rounded">
                 </div>
-                <div>
+                <div title="When do you need this money by?">
                     <label class="block text-sm">Target Date</label>
                     <input type="date" id="sipDate" class="border p-2 w-full rounded">
                 </div>
-                <div>
+                <div title="Annual rate of return expected on investments.">
                     <label class="block text-sm">Expected Returns (%)</label>
                     <input type="number" id="sipReturn" value="12" class="border p-2 w-full rounded">
                 </div>
@@ -383,6 +400,134 @@
     </div>
 
 
+    <!-- Setup Guide Tab -->
+    <div id="guide" class="tab-content">
+        <div class="bg-white p-6 rounded-lg shadow-md space-y-8">
+            <section>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Privacy & Security</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-blue-800 mb-2">How Data is Handled</h3>
+                        <p class="text-sm text-gray-600">Your financial data is stored <b>locally in your browser's storage</b>. It is never transmitted to any third-party server except when you explicitly use the Google Drive sync feature.</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-green-800 mb-2">Google Drive Security</h3>
+                        <p class="text-sm text-gray-600">The app uses the <code>drive.file</code> scope. This is the most secure access level: the app can <b>only</b> see and modify the specific file it creates (<code>wealth_data.json</code>). It cannot see your other Drive documents.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Understanding Tabs & Features</h2>
+                <div class="space-y-6">
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h4 class="font-bold text-gray-800">1. Inventory (The Database)</h4>
+                        <p class="text-sm text-gray-600 mt-1">This is where you manage your accounts. The workflow is two-step:</p>
+                        <ul class="list-disc ml-5 mt-2 text-sm text-gray-600">
+                            <li><b>Create a Container:</b> Add the name of the account (e.g., "Vanguard", "HDFC Bank") and its category.</li>
+                            <li><b>Add Snapshots:</b> Click on a container to enter your monthly balance. Use <b>"Clone Latest"</b> to quickly copy the previous month's numbers and update only what changed.</li>
+                            <li><b>Stock Category:</b> Only assets marked as <i>"Stock Market"</i> are used in the FIRE and Stock Projections calculators.</li>
+                        </ul>
+                    </div>
+
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h4 class="font-bold text-gray-800">2. Totals (The Dashboard)</h4>
+                        <p class="text-sm text-gray-600 mt-1">A consolidated view of your wealth across India and USA. The <b>Net Worth History</b> table automatically calculates the "Periodic Change" (how much you grew month-over-month) and handles currency conversion using your set exchange rate.</p>
+                    </div>
+
+                    <div class="border-l-4 border-indigo-500 pl-4">
+                        <h4 class="font-bold text-gray-800">3. Stock Projections</h4>
+                        <p class="text-sm text-gray-600 mt-1">Visualizes the power of compounding. It takes your current <i>Stock Market</i> holdings and projects future growth based on an annual return rate and planned monthly SIPs.</p>
+                    </div>
+
+                    <div class="border-l-4 border-pink-500 pl-4">
+                        <h4 class="font-bold text-gray-800">4. SIP Planning</h4>
+                        <p class="text-sm text-gray-600 mt-1">A "Reverse Calculator". Instead of asking what you'll have, you tell the app what you <b>need</b> (e.g., ₹1 Crore for a house) and the date you need it. The app calculates exactly how much you must invest monthly starting today.</p>
+                    </div>
+
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <h4 class="font-bold text-gray-800">5. FIRE Planning</h4>
+                        <p class="text-sm text-gray-600 mt-1">Calculates when you can reach Financial Independence. It uses your <b>Annual Expenses</b> and <b>Safe Withdrawal Rate</b> (usually 4%) to find your target "Corpus". It factors in inflation to ensure your retirement date is realistic.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Google Drive Setup Guide</h2>
+                <p class="text-gray-600 mb-6">To enable cloud syncing, you need to create your own Google Cloud project. This ensures you own the integration entirely and no one else (including this app's developers) has access to your data.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-blue-800 mb-2">100% Client-Side</h3>
+                        <p class="text-sm text-gray-600">This application is a "Static Single Page App". It has no backend server. Your financial data never touches our servers because there are none.</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-green-800 mb-2">Direct Drive Sync</h3>
+                        <p class="text-sm text-gray-600">When you connect Google Drive, the app communicates <b>directly</b> with Google's APIs. We use the <code>drive.file</code> scope, meaning the app can only see files it created.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Google Drive Setup Guide</h2>
+                <p class="text-gray-600 mb-6">To enable cloud syncing, you need to create your own Google Cloud project. This ensures you own the integration entirely.</p>
+                
+                <div class="space-y-6">
+                    <div class="flex gap-4">
+                        <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold">1</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Create a Google Cloud Project</h4>
+                            <p class="text-sm text-gray-600">Go to the <a href="https://console.cloud.google.com/" target="_blank" class="text-blue-600 underline">Google Cloud Console</a>. Click "Select a project" &gt; "New Project". Give it a name like "MyWealthTracker".</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold">2</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Enable Google Drive API</h4>
+                            <p class="text-sm text-gray-600">In the sidebar, go to "APIs & Services" &gt; "Library". Search for <b>"Google Drive API"</b> and click "Enable".</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold">3</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Configure OAuth Consent Screen</h4>
+                            <p class="text-sm text-gray-600">Go to "APIs & Services" &gt; "OAuth consent screen".</p>
+                            <ul class="list-disc ml-5 mt-2 text-sm text-gray-600">
+                                <li>Choose "External" User Type.</li>
+                                <li>Fill in App Name and your Email.</li>
+                                <li>In "Scopes", add <code>.../auth/drive.file</code>.</li>
+                                <li>Add your own email as a "Test User" (required while in Testing mode).</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold">4</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Create Credentials</h4>
+                            <p class="text-sm text-gray-600">Go to "APIs & Services" &gt; "Credentials".</p>
+                            <ul class="list-disc ml-5 mt-2 text-sm text-gray-600">
+                                <li><b>API Key:</b> Click "Create Credentials" &gt; "API Key". Copy it.</li>
+                                <li><b>OAuth Client ID:</b> Click "Create Credentials" &gt; "OAuth client ID". Select "Web application".</li>
+                                <li><b>Authorized JavaScript origins:</b> Add <code>http://localhost</code> and the URL where you host this file.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold">5</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Connect in App</h4>
+                            <p class="text-sm text-gray-600">Go to the <b>Settings</b> tab in WealthTracker. Paste your API Key and Client ID, click "Update", and then "Connect Google Drive".</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
 
 
 
@@ -392,8 +537,10 @@
     <div id="settings" class="tab-content">
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">Configuration</h2>
-            <label class="block text-sm">1 USD to INR Rate</label>
-            <input type="number" id="exchangeRate" value="83.0" step="0.1" class="border p-2 rounded w-full md:w-1/4">
+            <div title="Current conversion rate for USA assets.">
+                <label class="block text-sm">1 USD to INR Rate</label>
+                <input type="number" id="exchangeRate" value="83.0" step="0.1" class="border p-2 rounded w-full md:w-1/4">
+            </div>
             <button onclick="saveSettings()" class="block mt-4 bg-gray-800 text-white px-4 py-2 rounded">Update Exchange Rate</button>
 
             <hr class="my-8">
@@ -444,6 +591,24 @@
     </div>
 </div>
 
+<!-- Quick Start Modal -->
+<div id="quickStartModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md mx-4">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Welcome to WealthTracker! 🚀</h2>
+        <p class="text-gray-600 mb-6 leading-relaxed">
+            Ready to take control of your finances? We recommend starting with our <b>Setup Guide</b> to understand how the inventory works and how to enable secure cloud syncing.
+        </p>
+        <div class="flex flex-col gap-3">
+            <button onclick="dismissQuickStart('guide')" class="bg-blue-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                Open Setup Guide
+            </button>
+            <button onclick="dismissQuickStart()" class="text-gray-400 text-sm font-medium hover:text-gray-600">
+                Dismiss and start exploring
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // State Management
     let state = {
@@ -454,6 +619,8 @@
         assets: [],
         selectedAssetId: null
     };
+    let isPreviewMode = false;
+    let backupState = null;
 
     // GDrive Global variables
     let tokenClient;
@@ -495,6 +662,12 @@
         document.getElementById('projTargetDate').value = `${projDate.getFullYear()}-${String(projDate.getMonth() + 1).padStart(2, '0')}`;
     }
 
+    function dismissQuickStart(targetTab = null) {
+        document.getElementById('quickStartModal').classList.add('hidden');
+        localStorage.setItem('hasSeenQuickStart', 'true');
+        if (targetTab) showTab(targetTab);
+    }
+
     window.onload = () => {
         const savedData = localStorage.getItem('wealthTrackerData');
         if (savedData) {
@@ -514,13 +687,23 @@
                 document.getElementById('gdriveClientId').value = state.config.gdrive.clientId || '';
             }
             renderAssets();
+            updateClearDemoButtonVisibility();
         }
         setDefaultDate();
+
+        // Show Quick Start if it's the first time and no data exists
+        if (!localStorage.getItem('hasSeenQuickStart') && !savedData) {
+            document.getElementById('quickStartModal').classList.remove('hidden');
+        }
+
         gapiLoaded();
         gisLoaded();
     };
 
     function saveToLocalStorage() {
+        // If we are in preview mode, we do NOT persist the state to storage.
+        if (isPreviewMode) return;
+
         localStorage.setItem('wealthTrackerData', JSON.stringify(state));
         if (accessToken) {
             syncToDrive();
@@ -808,6 +991,7 @@
             state.assets = state.assets.filter(a => a.id !== id);
             saveToLocalStorage();
             renderAssets();
+            updateClearDemoButtonVisibility();
         }
     }
 
@@ -1795,6 +1979,121 @@
         downloadAnchorNode.remove();
     }
 
+    function loadDemoData() {
+        // Back up current state before loading demo
+        backupState = JSON.parse(JSON.stringify(state));
+        isPreviewMode = true;
+        
+        document.getElementById('previewBanner').classList.remove('hidden');
+
+        const now = new Date();
+        const months = [];
+        for (let i = 3; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push(d.toISOString().split('T')[0]);
+        }
+
+        const demoAssets = [
+            {
+                id: 101,
+                name: "HDFC Securities",
+                type: "asset",
+                category: "stock",
+                country: "India",
+                exclude: false,
+                entries: [
+                    { id: 1, timestamp: months[0], value: 500000, invested: 480000, pl: 20000, percent: 4.17, periodicChange: 0 },
+                    { id: 2, timestamp: months[1], value: 520000, invested: 490000, pl: 30000, percent: 6.12, periodicChange: 20000 },
+                    { id: 3, timestamp: months[2], value: 515000, invested: 500000, pl: 15000, percent: 3.00, periodicChange: -5000 },
+                    { id: 4, timestamp: months[3], value: 550000, invested: 510000, pl: 40000, percent: 7.84, periodicChange: 35000 }
+                ]
+            },
+            {
+                id: 102,
+                name: "Charles Schwab",
+                type: "asset",
+                category: "stock",
+                country: "USA",
+                exclude: false,
+                entries: [
+                    { id: 5, timestamp: months[0], value: 10000, invested: 9500, pl: 500, percent: 5.26, periodicChange: 0 },
+                    { id: 6, timestamp: months[1], value: 10500, invested: 9600, pl: 900, percent: 9.38, periodicChange: 500 },
+                    { id: 7, timestamp: months[2], value: 11200, invested: 9700, pl: 1500, percent: 15.46, periodicChange: 700 },
+                    { id: 8, timestamp: months[3], value: 12000, invested: 10000, pl: 2000, percent: 20.00, periodicChange: 800 }
+                ]
+            },
+            {
+                id: 103,
+                name: "Home Loan",
+                type: "liability",
+                category: "regular",
+                country: "India",
+                exclude: false,
+                entries: [
+                    { id: 9, timestamp: months[0], value: 4500000, invested: 4500000, pl: 0, percent: 0, periodicChange: 0 },
+                    { id: 10, timestamp: months[1], value: 4480000, invested: 4480000, pl: 0, percent: 0, periodicChange: -20000 },
+                    { id: 11, timestamp: months[2], value: 4460000, invested: 4460000, pl: 0, percent: 0, periodicChange: -20000 },
+                    { id: 12, timestamp: months[3], value: 4440000, invested: 4440000, pl: 0, percent: 0, periodicChange: -20000 }
+                ]
+            }
+        ];
+
+        state = {
+            ...state,
+            assets: demoAssets,
+            config: {
+                ...state.config,
+                exchangeRate: 83.5
+            }
+        };
+
+        // Refresh UI with demo data (but don't save to localStorage)
+        renderAssets();
+        document.getElementById('demoBtn').classList.add('hidden');
+        updateClearDemoButtonVisibility();
+
+        // Trigger a tab switch to Totals to show off the charts
+        showTab('totals');
+        
+        // Update inputs in other tabs that depend on current state
+        updateFireInputs();
+    }
+
+    function exitDemoMode() {
+        if (backupState) {
+            state = backupState;
+            backupState = null;
+        }
+        isPreviewMode = false;
+        document.getElementById('previewBanner').classList.add('hidden');
+        document.getElementById('demoBtn').classList.remove('hidden');
+        
+        renderAssets();
+        updateClearDemoButtonVisibility();
+        showTab('entries');
+    }
+
+    function updateClearDemoButtonVisibility() {
+        const demoIds = [101, 102, 103];
+        const hasDemo = state.assets && state.assets.some(a => demoIds.includes(a.id));
+        const btn = document.getElementById('clearDemoBtn');
+        if (btn) {
+            hasDemo ? btn.classList.remove('hidden') : btn.classList.add('hidden');
+        }
+    }
+
+    function clearDemoData() {
+        const demoIds = [101, 102, 103];
+        if (confirm("Remove the demo assets? Your settings and custom data will be preserved.")) {
+            state.assets = state.assets.filter(a => !demoIds.includes(a.id));
+            saveToLocalStorage();
+            renderAssets();
+            updateClearDemoButtonVisibility();
+            showTab('entries');
+            alert("Demo data removed.");
+        }
+    }
+
     function importData(event) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1810,6 +2109,7 @@
                     state.assets.forEach(a => { if(!a.entries) a.entries = []; });
                     saveToLocalStorage();
                     renderAssets();
+                    updateClearDemoButtonVisibility();
                     alert("Data loaded successfully!");
                 }
             } catch (err) {
