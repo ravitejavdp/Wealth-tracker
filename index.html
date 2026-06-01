@@ -291,7 +291,11 @@
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">In Diff</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">US Diff</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Total Δ</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">In Stk Δ</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">US Stk Δ</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Stock Δ</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">In ExStk Δ</th>
+                                <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">US ExStk Δ</th>
                                 <th class="p-2 sm:p-4 text-xs font-bold text-gray-400 uppercase">Ex-Stock Δ</th>
                             </tr>
                         </thead>
@@ -1460,6 +1464,10 @@
                 monthKey,
                 inNet: inAssets - inLiabilities,
                 usNet: usAssets - usLiabilities,
+                inStockNet: inStocks,
+                usStockNet: usStocks,
+                inNonStockNet: (inAssets - inLiabilities) - inStocks,
+                usNonStockNet: (usAssets - usLiabilities) - usStocks,
                 assetsINR: inAssets + (usAssets * rate),
                 liabilitiesINR: inLiabilities + (usLiabilities * rate),
                 totalNetINR: (inAssets - inLiabilities) + ((usAssets - usLiabilities) * rate),
@@ -1478,6 +1486,11 @@
             const totalDiff = prevSnap ? snap.totalNetINR - prevSnap.totalNetINR : 0;
             const stockDiff = prevSnap ? snap.stockNetINR - prevSnap.stockNetINR : 0;
             const nonStockDiff = prevSnap ? snap.nonStockNetINR - prevSnap.nonStockNetINR : 0;
+
+            const inStockDiff = prevSnap ? snap.inStockNet - prevSnap.inStockNet : 0;
+            const usStockDiff = prevSnap ? snap.usStockNet - prevSnap.usStockNet : 0;
+            const inNonStockDiff = prevSnap ? snap.inNonStockNet - prevSnap.inNonStockNet : 0;
+            const usNonStockDiff = prevSnap ? snap.usNonStockNet - prevSnap.usNonStockNet : 0;
 
             const displayMonth = new Date(snap.monthKey + "-02").toLocaleDateString(undefined, { 
                 month: 'short', 
@@ -1519,8 +1532,20 @@
                     <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(totalDiff)} font-bold">
                         ${prevSnap ? formatDiff(totalDiff, '₹') : '-'}
                     </td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(inStockDiff)} font-medium">
+                        ${prevSnap ? formatDiff(inStockDiff, '₹') : '-'}
+                    </td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(usStockDiff)} font-medium">
+                        ${prevSnap ? formatDiff(usStockDiff, '$') : '-'}
+                    </td>
                     <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(stockDiff)} font-bold">
                         ${prevSnap ? formatDiff(stockDiff, '₹') : '-'}
+                    </td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(inNonStockDiff)} font-medium">
+                        ${prevSnap ? formatDiff(inNonStockDiff, '₹') : '-'}
+                    </td>
+                    <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(usNonStockDiff)} font-medium">
+                        ${prevSnap ? formatDiff(usNonStockDiff, '$') : '-'}
                     </td>
                     <td class="p-2 sm:p-4 font-mono text-xs sm:text-sm ${getDiffClass(nonStockDiff)} font-bold">
                         ${prevSnap ? formatDiff(nonStockDiff, '₹') : '-'}
